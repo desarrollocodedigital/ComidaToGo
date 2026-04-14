@@ -1,0 +1,58 @@
+<template>
+  <div class="demo-menu min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex flex-col items-center justify-center font-sans">
+    <div class="max-w-3xl w-full">
+      <div class="text-center mb-12">
+        <h1 class="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-pink-500 mb-4 tracking-tight">Menú Demo "ComidaToGo"</h1>
+        <p class="text-slate-400 text-lg">Explora las nuevas interfaces del sistema POS y Analíticas. Estos son prototipos visuales (maquetas) sin lógica de backend aún.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Pdv Card -->
+        <router-link to="/demo/pos" class="group bg-slate-800 border border-slate-700 rounded-3xl p-8 hover:bg-slate-700 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-2xl hover:border-orange-500/50 flex flex-col items-center text-center">
+          <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-lg shadow-orange-500/30 mb-6 text-white">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+          </div>
+          <h2 class="text-2xl font-bold text-white mb-2">Web POS</h2>
+          <p class="text-slate-400 md:h-20">El Punto de Venta ágil para cajeros. Toma pedidos en la caja, selecciona el tipo de pedido y cobra.</p>
+          <span class="mt-4 text-orange-400 font-semibold group-hover:text-orange-300 flex items-center">
+            Ver Pantalla <svg class="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+          </span>
+        </router-link>
+
+        <!-- Caja Card -->
+        <router-link to="/demo/caja" class="group bg-slate-800 border border-slate-700 rounded-3xl p-8 hover:bg-slate-700 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-2xl hover:border-blue-500/50 flex flex-col items-center text-center">
+          <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/30 mb-6 text-white">
+             <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </div>
+          <h2 class="text-2xl font-bold text-white mb-2">Control de Caja</h2>
+          <p class="text-slate-400 md:h-20">Abre y cierra turnos, registra entradas/salidas de efectivo y realiza el corte cuadrado del día.</p>
+          <span class="mt-4 text-blue-400 font-semibold group-hover:text-blue-300 flex items-center">
+            Ver Pantalla <svg class="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+          </span>
+        </router-link>
+
+        <!-- Analytics Card -->
+        <router-link to="/demo/analytics" class="group bg-slate-800 border border-slate-700 rounded-3xl p-8 hover:bg-slate-700 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-2xl hover:border-emerald-500/50 flex flex-col items-center text-center">
+          <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30 mb-6 text-white">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+          </div>
+          <h2 class="text-2xl font-bold text-white mb-2">Dashboard</h2>
+          <p class="text-slate-400 md:h-20">El centro de control de negocios. Visualiza estadísticas de ventas, platillos Top y comparativas (YoY).</p>
+          <span class="mt-4 text-emerald-400 font-semibold group-hover:text-emerald-300 flex items-center">
+            Ver Pantalla <svg class="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+          </span>
+        </router-link>
+
+      </div>
+      
+      <!-- Volver atras -->
+      <div class="mt-12 text-center">
+         <router-link to="/" class="text-slate-500 hover:text-white transition-colors">← Volver al inicio de la aplicación</router-link>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+</script>

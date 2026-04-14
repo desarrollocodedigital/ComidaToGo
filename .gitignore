@@ -1,0 +1,12 @@
+# Ignorar carpeta de base de datos
+database/
+php_dev_log.txt
+Requerimientos
+
+
+# Ignorar dependencias
+node_modules/
+vendor/
+
+# Ignorar archivos de logs y temporales
+.env

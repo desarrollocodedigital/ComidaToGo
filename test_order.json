@@ -1,0 +1,13 @@
+{
+    "company_id": 1,
+    "customer_name": "Gerardo",
+    "customer_phone": "555-1234",
+    "order_type": "PICKUP",
+    "items": [
+        {
+            "product_id": 1, 
+            "quantity": 2, 
+            "modifiers": [3]
+        }
+    ]
+}
