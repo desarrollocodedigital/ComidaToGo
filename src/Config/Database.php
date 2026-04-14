@@ -9,12 +9,16 @@ class Database {
     private static $instance = null;
     private $connection;
 
-    private $host = 'localhost';
-    private $db_name = 'comidatogo_db'; // Asegúrate de crear esta BD o cambiar el nombre
-    private $username = 'root';
-    private $password = '';
+    private $host;
+    private $db_name;
+    private $username;
+    private $password;
 
     private function __construct() {
+        $this->host = getenv('DB_HOST') ?: 'localhost';
+        $this->db_name = getenv('DB_NAME') ?: 'comidatogo_db';
+        $this->username = getenv('DB_USER') ?: 'root';
+        $this->password = getenv('DB_PASS') ?: '';
         try {
             $dsn = "mysql:host=" . $this->host . ";dbname=" . $this->db_name . ";charset=utf8mb4";
             $this->connection = new PDO($dsn, $this->username, $this->password);

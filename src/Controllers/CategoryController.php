@@ -2,20 +2,18 @@
 
 namespace App\Controllers;
 
-use App\Config\Database;
-use PDO;
+use App\Models\Category;
 
 class CategoryController {
-    private $db;
+    private $model;
 
     public function __construct() {
-        $this->db = Database::getInstance()->getConnection();
+        $this->model = new Category();
     }
 
     public function getByCompany($companyId) {
-        $stmt = $this->db->prepare("SELECT * FROM categories WHERE company_id = :cid ORDER BY sort_order ASC, name ASC");
-        $stmt->execute([':cid' => $companyId]);
-        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+        $categories = $this->model->getCategoriesByCompany($companyId);
+        echo json_encode($categories);
     }
 
     public function create() {
@@ -26,14 +24,9 @@ class CategoryController {
             return;
         }
 
-        $stmt = $this->db->prepare("INSERT INTO categories (company_id, name, sort_order) VALUES (:cid, :keyname, :sort)");
-        $stmt->execute([
-            ':cid' => $input['company_id'],
-            ':keyname' => $input['name'],
-            ':sort' => $input['sort_order'] ?? 0
-        ]);
+        $id = $this->model->createCategory($input);
 
-        echo json_encode(["id" => $this->db->lastInsertId(), "message" => "Categoría creada"]);
+        echo json_encode(["id" => $id, "message" => "Categoría creada"]);
     }
 
     public function update($id, $input) {
@@ -42,19 +35,14 @@ class CategoryController {
             return;
         }
 
-        $stmt = $this->db->prepare("UPDATE categories SET name = :keyname, sort_order = :sort WHERE id = :id");
-        $stmt->execute([
-            ':keyname' => $input['name'],
-            ':sort' => $input['sort_order'] ?? 0,
-            ':id' => $id
-        ]);
+        $this->model->updateCategory($id, $input);
 
         echo json_encode(["message" => "Categoría actualizada"]);
     }
 
     public function delete($id) {
-        $stmt = $this->db->prepare("DELETE FROM categories WHERE id = :id");
-        $stmt->execute([':id' => $id]);
+        $this->model->delete($id);
         echo json_encode(["message" => "Categoría eliminada"]);
     }
 }
+

@@ -2,21 +2,19 @@
 
 namespace App\Controllers;
 
-use App\Config\Database;
-use PDO;
+use App\Models\User;
 
 class UserController {
-    private $db;
+    private $model;
 
     public function __construct() {
-        $this->db = Database::getInstance()->getConnection();
+        $this->model = new User();
     }
 
     // GET /api.php/users?company_id=X
     public function getByCompany($companyId) {
-        $stmt = $this->db->prepare("SELECT id, name, email, role, company_id, created_at FROM users WHERE company_id = :cid ORDER BY created_at DESC");
-        $stmt->execute([':cid' => $companyId]);
-        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+        $users = $this->model->getUsersByCompany($companyId);
+        echo json_encode($users);
     }
 
     // POST /api.php/users
@@ -36,43 +34,22 @@ class UserController {
             return;
         }
 
-        // Check duplicate email
-        $stmt = $this->db->prepare("SELECT id FROM users WHERE email = :email");
-        $stmt->execute([':email' => $input['email']]);
-        if ($stmt->fetch()) {
-            http_response_code(409);
-            echo json_encode(["message" => "El email ya está registrado"]);
-            return;
-        }
+        $result = $this->model->createUser($input);
 
-        $hash = password_hash($input['password'], PASSWORD_DEFAULT);
-        $sql = "INSERT INTO users (name, email, password, role, company_id) VALUES (:name, :email, :pass, :role, :cid)";
-        $stmt = $this->db->prepare($sql);
-
-        try {
-            $stmt->execute([
-                ':name' => $input['name'],
-                ':email' => $input['email'],
-                ':pass' => $hash,
-                ':role' => $input['role'],
-                ':cid' => $input['company_id']
-            ]);
+        if ($result['success']) {
             echo json_encode([
                 "message" => "Empleado creado",
-                "user_id" => $this->db->lastInsertId()
+                "user_id" => $result['user_id']
             ]);
-        } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode(["message" => "Error: " . $e->getMessage()]);
+        } else {
+            http_response_code(isset($result['message']) && strpos($result['message'], 'registrado') !== false ? 409 : 500);
+            echo json_encode(["message" => $result['message']]);
         }
     }
 
     // DELETE /api.php/users/{id}
     public function delete($id) {
-        $stmt = $this->db->prepare("DELETE FROM users WHERE id = :id AND role IN ('KITCHEN','CASHIER','WAITER')");
-        $stmt->execute([':id' => $id]);
-        
-        if ($stmt->rowCount() > 0) {
+        if ($this->model->deleteUser($id)) {
             echo json_encode(["message" => "Empleado eliminado"]);
         } else {
             http_response_code(404);
@@ -80,3 +57,4 @@ class UserController {
         }
     }
 }
+

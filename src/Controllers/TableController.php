@@ -2,14 +2,13 @@
 
 namespace App\Controllers;
 
-use App\Config\Database;
-use PDO;
+use App\Models\Table;
 
 class TableController {
-    private $db;
+    private $model;
 
     public function __construct() {
-        $this->db = Database::getInstance()->getConnection();
+        $this->model = new Table();
     }
 
     // GET /api.php/tables?company_id=1
@@ -21,10 +20,7 @@ class TableController {
             return;
         }
 
-        $stmt = $this->db->prepare("SELECT * FROM restaurant_tables WHERE company_id = ? ORDER BY id ASC");
-        $stmt->execute([$company_id]);
-        $tables = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+        $tables = $this->model->getTablesByCompany($company_id);
         echo json_encode($tables);
     }
 
@@ -41,10 +37,11 @@ class TableController {
             return;
         }
 
-        $stmt = $this->db->prepare("INSERT INTO restaurant_tables (company_id, name, capacity) VALUES (?, ?, ?)");
-        if ($stmt->execute([$company_id, $name, $capacity])) {
+        $result = $this->model->createTable($company_id, $name, $capacity);
+        
+        if ($result['success']) {
             http_response_code(201);
-            echo json_encode(['message' => 'Mesa creada', 'id' => $this->db->lastInsertId()]);
+            echo json_encode(['message' => 'Mesa creada', 'id' => $result['id']]);
         } else {
             http_response_code(500);
             echo json_encode(['message' => 'Error al crear mesa.']);
@@ -61,11 +58,11 @@ class TableController {
               return;
          }
 
-         $stmt = $this->db->prepare("UPDATE restaurant_tables SET status = ? WHERE id = ?");
-         if ($stmt->execute([$status, $id])) {
+         if ($this->model->updateStatus($id, $status)) {
              echo json_encode(['message' => 'Estado de la mesa actualizado']);
          } else {
              http_response_code(500);
          }
     }
 }
+

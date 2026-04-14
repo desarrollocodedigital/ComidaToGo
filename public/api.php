@@ -9,36 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit();
 }
 
-require_once __DIR__ . '/../src/Config/Database.php';
-
-// Autoloader (copiado de index.php por simplicidad, idealmente common.php)
-spl_autoload_register(function ($class) {
-    // Definir el prefijo del espacio de nombres
-    $prefix = 'App\\';
-
-    // Definir el directorio base para el espacio de nombres
-    $base_dir = __DIR__ . '/../src/';
-
-    // Verificar si la clase utiliza el prefijo del espacio de nombres
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        // Si no, pasar a registrar el siguiente autoloader
-        return;
-    }
-
-    // Obtener el nombre relativo de la clase
-    $relative_class = substr($class, $len);
-
-    // Reemplazar el prefijo del espacio de nombres por el directorio base
-    // reemplazar los separadores de espacio de nombres por separadores de directorio
-    // y añadir la extensión .php
-    $file = $base_dir . str_replace('\\', '/', $relative_class) . '.php';
-
-    // Si el archivo existe, requerirlo
-    if (file_exists($file)) {
-        require $file;
-    }
-});
+require_once __DIR__ . '/../src/bootstrap.php';
 
 use App\Controllers\CompanyController;
 use App\Controllers\CategoryController;
