@@ -14,7 +14,7 @@ export default defineConfig({
     proxy: {
       // Proxy API requests to PHP backend
       '/api.php': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost/ComidaToGo/public',
         changeOrigin: true,
       }
     }
