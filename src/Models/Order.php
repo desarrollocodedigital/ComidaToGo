@@ -133,8 +133,8 @@ class Order extends BaseModel {
                 ];
             }
 
-            $sql = "INSERT INTO {$this->table} (company_id, customer_name, customer_phone, customer_address, order_type, table_id, payment_method, cash_register_shift_id, total_amount, status, scheduled_at) 
-                    VALUES (:cid, :cname, :cphone, :caddr, :otype, :tid, :pm, :crsid, :total, 'PENDING', :sched)";
+            $sql = "INSERT INTO {$this->table} (company_id, customer_name, customer_phone, customer_address, customer_references, order_type, table_id, payment_method, cash_register_shift_id, total_amount, status, scheduled_at) 
+                    VALUES (:cid, :cname, :cphone, :caddr, :cref, :otype, :tid, :pm, :crsid, :total, 'PENDING', :sched)";
             
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
@@ -142,6 +142,7 @@ class Order extends BaseModel {
                 ':cname' => $input['customer_name'] ?? 'Cliente',
                 ':cphone' => $input['customer_phone'] ?? '',
                 ':caddr' => $input['customer_address'] ?? '',
+                ':cref' => $input['customer_references'] ?? '',
                 ':otype' => $input['order_type'],
                 ':tid' => $input['table_id'] ?? null,
                 ':pm' => $input['payment_method'] ?? 'CASH',

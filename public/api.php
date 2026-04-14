@@ -23,6 +23,8 @@ use App\Controllers\AnalyticsController;
 use App\Controllers\TableController;
 use App\Controllers\ChatController;
 use App\Controllers\UserController;
+use App\Controllers\UploadController;
+use App\Controllers\CartController;
 
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $uri = explode('/', $uri);
@@ -168,14 +170,30 @@ if ($resource === 'auth') {
         // e.g., DELETE /product_modifiers/{product_id}?modifier_group_id=X
         $controller->removeGroupFromProduct($param, $_GET['modifier_group_id']);
     }
+} elseif ($resource === 'upload') {
+    $controller = new UploadController();
+    if ($method === 'POST') {
+        $controller->upload();
+    }
 } elseif ($resource === 'users') {
     $controller = new UserController();
     if ($method === 'GET' && isset($_GET['company_id'])) {
         $controller->getByCompany($_GET['company_id']);
     } elseif ($method === 'POST') {
-        $controller->create();
+        if ($param === 'profile') {
+            $controller->updateProfile();
+        } else {
+            $controller->create();
+        }
+    } elseif ($method === 'PUT' && $param === 'profile') {
+        $controller->updateProfile();
     } elseif ($method === 'DELETE' && $param) {
         $controller->delete($param);
+    }
+} elseif ($resource === 'cart') {
+    $controller = new CartController();
+    if ($method === 'POST' && $param === 'sync') {
+        $controller->sync();
     }
 } else {
     http_response_code(404);

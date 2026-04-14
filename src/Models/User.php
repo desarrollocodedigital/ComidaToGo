@@ -39,6 +39,27 @@ class User extends BaseModel {
         }
     }
 
+    public function updateCart($userId, $cartData) {
+        $sql = "UPDATE {$this->table} SET cart_data = :cd WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':cd' => $cartData,
+            ':id' => $userId
+        ]);
+    }
+
+    public function updateProfile($userId, $data) {
+        $sql = "UPDATE {$this->table} SET name = :name, phone = :phone, addresses = :addr WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':name' => $data['name'] ?? null,
+            ':phone' => $data['phone'] ?? null,
+            ':addr' => isset($data['addresses']) ? json_encode($data['addresses'], JSON_UNESCAPED_UNICODE) : null,
+            ':id' => $userId
+        ]);
+    }
+
+
     public function deleteUser($id) {
         $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE id = :id AND role IN ('KITCHEN','CASHIER','WAITER')");
         $stmt->execute([':id' => $id]);

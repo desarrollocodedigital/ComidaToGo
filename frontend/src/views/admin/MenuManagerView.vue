@@ -2,8 +2,10 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '../../stores/auth'
-import { Plus, Edit, Trash2, Save, X, Image as ImageIcon } from 'lucide-vue-next'
+import { Plus, Edit, Trash2, Save, X, Image as ImageIcon, Upload, Loader2 } from 'lucide-vue-next'
+import { useToast } from '../../composables/useToast'
 
+const toast = useToast()
 const auth = useAuthStore()
 const categories = ref([])
 const products = ref([])
@@ -16,6 +18,8 @@ const activeTab = ref('MENU') // 'MENU' | 'EXTRAS'
 const categoryModal = ref({ open: false, data: {} })
 const productModal = ref({ open: false, data: {} })
 const modifierModal = ref({ open: false, data: { options: [] } })
+const uploadingImage = ref(false)
+const fileInput = ref(null)
 
 const fetchData = async () => {
     loading.value = true
@@ -50,9 +54,10 @@ const saveCategory = async () => {
             await axios.post('/api.php/categories', categoryModal.value.data)
         }
         categoryModal.value.open = false
+        toast.success(categoryModal.value.data.id ? "Categoría actualizada" : "Categoría creada")
         fetchData()
     } catch (e) {
-        alert("Error al guardar categoría")
+        toast.error("Error al guardar categoría")
     }
 }
 
@@ -60,9 +65,10 @@ const deleteCategory = async (id) => {
     if (!confirm("¿Seguro que deseas eliminar esta categoría? Se borrarán sus productos.")) return
     try {
         await axios.delete(`/api.php/categories/${id}`)
+        toast.success("Categoría eliminada")
         fetchData()
     } catch (e) {
-        alert("Error al eliminar")
+        toast.error("Error al eliminar categoría")
     }
 }
 
@@ -86,9 +92,10 @@ const saveProduct = async () => {
             await axios.post('/api.php/products', productModal.value.data)
         }
         productModal.value.open = false
+        toast.success(productModal.value.data.id ? "Platillo actualizado" : "Platillo creado")
         fetchData()
     } catch (e) {
-        alert("Error al guardar producto")
+        toast.error("Error al guardar producto")
     }
 }
 
@@ -96,9 +103,40 @@ const deleteProduct = async (id) => {
     if (!confirm("¿Seguro que deseas eliminar este producto?")) return
     try {
         await axios.delete(`/api.php/products/${id}`)
+        toast.success("Platillo eliminado")
         fetchData()
     } catch (e) {
-        alert("Error al eliminar")
+        toast.error("Error al eliminar producto")
+    }
+}
+
+const triggerFileUpload = () => {
+    fileInput.value.click()
+}
+
+const handleFileUpload = async (event) => {
+    const file = event.target.files[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('image', file)
+    
+    // Enviar URL antigua para que el servidor la borre
+    if (productModal.value.data.image_url) {
+        formData.append('old_url', productModal.value.data.image_url)
+    }
+
+    uploadingImage.value = true
+    try {
+        const res = await axios.post('/api.php/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        productModal.value.data.image_url = res.data.url
+        toast.success("Imagen cargada correctamente")
+    } catch (e) {
+        toast.error(e.response?.data?.message || "Error al subir la imagen")
+    } finally {
+        uploadingImage.value = false
     }
 }
 
@@ -135,9 +173,10 @@ const saveModifierGroup = async () => {
         }
 
         modifierModal.value.open = false
+        toast.success("Grupo de extras guardado")
         fetchData()
     } catch (e) {
-        alert("Error al guardar modificadores")
+        toast.error("Error al guardar modificadores")
     }
 }
 
@@ -145,9 +184,10 @@ const deleteModifierGroup = async (id) => {
     if (!confirm("¿Seguro que deseas eliminar este grupo de modificadores?")) return
     try {
         await axios.delete(`/api.php/modifiers/${id}`)
+        toast.success("Grupo eliminado")
         fetchData()
     } catch (e) {
-        alert("Error al eliminar")
+        toast.error("Error al eliminar cargador")
     }
 }
 
@@ -331,8 +371,53 @@ onMounted(() => {
                             <textarea v-model="productModal.data.description" rows="3" class="w-full p-2 border rounded focus:ring-2 focus:ring-orange-500 outline-none"></textarea>
                         </div>
                         <div class="col-span-2">
-                            <label class="block text-sm font-bold mb-1">URL de la Imagen</label>
-                            <input v-model="productModal.data.image_url" type="text" placeholder="https://..." class="w-full p-2 border rounded focus:ring-2 focus:ring-orange-500 outline-none">
+                            <label class="block text-sm font-bold mb-2">Imagen del Producto</label>
+                            
+                            <div class="flex flex-col items-center gap-4">
+                                <!-- Área de visualización/carga -->
+                                <div 
+                                    @click="triggerFileUpload"
+                                    class="relative group w-full h-48 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center cursor-pointer overflow-hidden hover:border-orange-500 hover:bg-orange-50/30 transition-all shadow-sm"
+                                >
+                                    <input 
+                                        type="file" 
+                                        ref="fileInput" 
+                                        @change="handleFileUpload" 
+                                        accept=".jpg,.jpeg,.png"
+                                        class="hidden"
+                                    >
+                                    
+                                    <div v-if="uploadingImage" class="flex flex-col items-center">
+                                        <Loader2 class="w-8 h-8 text-orange-500 animate-spin mb-2" />
+                                        <p class="text-sm font-medium text-gray-500">Subiendo...</p>
+                                    </div>
+                                    
+                                    <template v-else>
+                                        <img 
+                                            v-if="productModal.data.image_url" 
+                                            :src="productModal.data.image_url" 
+                                            class="w-full h-full object-cover group-hover:opacity-75 transition-opacity"
+                                        >
+                                        <div v-else class="flex flex-col items-center text-gray-400 group-hover:text-orange-500">
+                                            <Upload class="w-10 h-10 mb-2" />
+                                            <p class="font-bold">Haz clic para subir imagen</p>
+                                            <p class="text-xs">JPG, PNG permitidos</p>
+                                        </div>
+                                        
+                                        <!-- Overlay de cambio -->
+                                        <div v-if="productModal.data.image_url" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div class="bg-white/20 backdrop-blur-md px-4 py-2 rounded-full text-white font-bold text-sm border border-white/30">
+                                                Cambiar Imagen
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                                
+                                <div class="w-full">
+                                    <label class="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">O link directo</label>
+                                    <input v-model="productModal.data.image_url" type="text" placeholder="https://..." class="w-full p-2 text-sm border rounded bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none transition-all">
+                                </div>
+                            </div>
                         </div>
                         <div class="col-span-2 flex items-center gap-2 mt-2">
                             <input type="checkbox" v-model="productModal.data.is_available" :true-value="1" :false-value="0" id="isAvail" class="w-4 h-4 text-orange-600 focus:ring-orange-500 rounded border-gray-300">

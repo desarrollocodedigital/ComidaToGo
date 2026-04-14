@@ -49,7 +49,10 @@ class Auth extends BaseModel {
                     "id" => $userId,
                     "name" => $input['name'],
                     "role" => $input['role'],
-                    "company_id" => $companyId
+                    "company_id" => $companyId,
+                    "phone" => null,
+                    "addresses" => [],
+                    "cart_data" => null // Nuevo usuario, carrito vacío
                 ]
             ];
         } catch (Exception $e) {
@@ -84,7 +87,10 @@ class Auth extends BaseModel {
                     "name" => $user['name'],
                     "email" => $user['email'],
                     "role" => $user['role'],
-                    "company_id" => $companyId
+                    "company_id" => $companyId,
+                    "phone" => $user['phone'],
+                    "addresses" => $user['addresses'] ? json_decode($user['addresses'], true) : [],
+                    "cart_data" => $user['cart_data'] // Recuperar de la base de datos
                 ]
             ];
         }

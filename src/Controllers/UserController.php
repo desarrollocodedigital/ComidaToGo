@@ -56,5 +56,22 @@ class UserController {
             echo json_encode(["message" => "Empleado no encontrado o no se puede eliminar (solo staff)"]);
         }
     }
-}
 
+    // PUT o POST /api.php/users/profile
+    public function updateProfile() {
+        $input = json_decode(file_get_contents('php://input'), true);
+
+        if (!isset($input['id'])) {
+            http_response_code(400);
+            echo json_encode(["message" => "Falta ID de usuario para actualizar el perfil"]);
+            return;
+        }
+
+        if ($this->model->updateProfile($input['id'], $input)) {
+            echo json_encode(["message" => "Perfil actualizado exitosamente"]);
+        } else {
+            http_response_code(500);
+            echo json_encode(["message" => "Error al actualizar el perfil"]);
+        }
+    }
+}

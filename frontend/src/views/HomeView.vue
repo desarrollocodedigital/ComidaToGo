@@ -57,23 +57,24 @@ onMounted(() => {
         <div class="relative bg-gray-900 overflow-hidden">
             <!-- Auth Button Absolute -->
             <div class="absolute top-6 right-6 z-20 flex items-center gap-3">
-                <!-- DEMO BUTTON -->
-                <router-link to="/demo" class="animate-pulse flex items-center gap-2 text-white font-bold bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 px-6 py-2 rounded-full shadow-lg shadow-orange-500/50 transition-all">
-                    ✨ MODO DEMO
-                </router-link>
 
-                <div v-if="auth.user" class="flex items-center gap-3 ml-4">
-                    <router-link v-if="auth.user.role === 'OWNER'" to="/admin/dashboard" class="text-white hover:text-orange-200 font-bold bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm">
+                <div v-if="auth.isAuthenticated" class="flex items-center gap-3 ml-4">
+                    <router-link v-if="auth.user.role === 'OWNER'" to="/admin/dashboard" class="text-white hover:text-orange-200 font-bold bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm transition-colors">
                         Panel
                     </router-link>
-                    <div class="flex items-center gap-2 text-white bg-black/30 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                    <div class="flex items-center gap-2 text-white bg-black/30 px-4 py-2 rounded-full backdrop-blur-sm">
                         <span class="text-sm font-medium">{{ auth.user.name }}</span>
-                        <button @click="auth.logout" class="text-xs text-red-300 hover:text-red-100 ml-2">Salir</button>
+                        <button @click="auth.logout" class="text-xs text-red-300 hover:text-red-100 ml-2 font-bold uppercase tracking-wider">Salir</button>
                     </div>
                 </div>
-                <router-link v-else to="/login" class="text-white font-bold bg-white/10 hover:bg-white/20 px-6 py-2 rounded-full backdrop-blur-md border border-white/20 transition-all">
-                    Ingresar
-                </router-link>
+                <div v-else class="flex items-center gap-2">
+                    <router-link to="/login" class="text-white font-bold bg-white/10 hover:bg-white/20 px-5 py-2 rounded-full backdrop-blur-md border border-white/20 transition-all">
+                        Iniciar Sesión
+                    </router-link>
+                    <router-link to="/registro" class="text-white font-bold bg-orange-600 hover:bg-orange-700 px-5 py-2 rounded-full shadow-lg transition-all">
+                        Registrarse
+                    </router-link>
+                </div>
             </div>
 
             <!-- Background Decoration (Gradient/Image) -->

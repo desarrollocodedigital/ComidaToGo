@@ -16,6 +16,10 @@ export default defineConfig({
       '/api.php': {
         target: 'http://localhost/ComidaToGo/public',
         changeOrigin: true,
+      },
+      '/uploads': {
+        target: 'http://localhost/ComidaToGo/public',
+        changeOrigin: true,
       }
     }
   },

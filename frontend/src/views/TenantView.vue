@@ -2,8 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
+import { useAuthStore } from '../stores/auth'
 import { useCartStore } from '../stores/cart'
-import { useCustomerStore } from '../stores/customer'
 import { ShoppingBag, ChevronLeft, User, X } from 'lucide-vue-next'
 import ProductModal from '../components/ProductModal.vue'
 import CartDrawer from '../components/CartDrawer.vue'
@@ -11,7 +11,7 @@ import CartDrawer from '../components/CartDrawer.vue'
 const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
-const customerStore = useCustomerStore()
+const authStore = useAuthStore()
 
 const company = ref(null)
 const loading = ref(true)
@@ -26,13 +26,14 @@ const isCartOpen = ref(false)
 
 // Guest Profile State
 const showWelcomeModal = ref(false)
-const guestName = ref(customerStore.profile.name || '')
-const guestPhone = ref(customerStore.profile.phone || '')
+const guestName = ref(authStore.user.name || '')
+const guestPhone = ref(authStore.user.phone || '')
 
 onMounted(async () => {
-    // Show welcome modal if first time
-    if (!customerStore.isConfigured) {
-        setTimeout(() => { showWelcomeModal.value = true }, 500)
+    // Sincronizar con sesión activa si existe
+    if (authStore.isAuthenticated && !authStore.isConfigured) {
+        authStore.setGuestProfile(authStore.user.name, '')
+        guestName.value = authStore.user.name
     }
 
     try {
@@ -46,8 +47,13 @@ onMounted(async () => {
 })
 
 const saveGuestProfile = () => {
-    customerStore.saveProfile(guestName.value, guestPhone.value)
+    authStore.setGuestProfile(guestName.value, guestPhone.value)
     showWelcomeModal.value = false
+    
+    // Si tiene productos en el carrito, después de configurar el perfil lo llevamos al checkout
+    if (cartStore.cartCount > 0) {
+        router.push('/checkout')
+    }
 }
 
 const openProductModal = (product) => {
@@ -55,8 +61,15 @@ const openProductModal = (product) => {
     isModalOpen.value = true
 }
 
-const handleAddToCart = ({ product, quantity, modifiers, special_instructions }) => {
-    const success = cartStore.addItem(product, quantity, modifiers, company.value.id, special_instructions)
+const handleAddToCart = async ({ product, quantity, modifiers, special_instructions }) => {
+    const success = await cartStore.addItem(
+        product, 
+        quantity, 
+        modifiers, 
+        company.value.id, 
+        company.value.name, 
+        special_instructions
+    )
     if (success) {
         // Opcional: Mostrar toast o abrir drawer automáticamente
         // isCartOpen.value = true
@@ -64,7 +77,11 @@ const handleAddToCart = ({ product, quantity, modifiers, special_instructions })
 }
 
 const goToCheckout = () => {
-    router.push('/checkout')
+    if (!authStore.isConfigured) {
+        showWelcomeModal.value = true
+    } else {
+        router.push('/checkout')
+    }
 }
 </script>
 
@@ -104,21 +121,25 @@ const goToCheckout = () => {
                     class="relative p-2 hover:bg-gray-100 rounded-full"
                     >
                         <ShoppingBag class="w-6 h-6 text-gray-800" />
-                        <span v-if="cartStore.cartCount > 0" class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-white"></span>
+                        <span v-if="cartStore.cartCount > 0" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border border-white px-1">
+                            {{ cartStore.cartCount }}
+                        </span>
                     </button>
                 </div>
             </div>
             
             <!-- Category Scroll -->
-            <div class="flex overflow-x-auto px-4 py-2 gap-4 no-scrollbar border-t border-gray-50">
-                <a 
-                    v-for="cat in company.menu" 
-                    :key="cat.id" 
-                    :href="`#cat-${cat.id}`"
-                    class="whitespace-nowrap px-4 py-1.5 rounded-full bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors"
-                >
-                    {{ cat.name }}
-                </a>
+            <div class="border-t border-gray-50">
+                <div class="max-w-3xl mx-auto flex overflow-x-auto px-4 py-2 gap-4 no-scrollbar justify-center sm:justify-start lg:justify-center">
+                    <a 
+                        v-for="cat in company.menu" 
+                        :key="cat.id" 
+                        :href="`#cat-${cat.id}`"
+                        class="whitespace-nowrap px-4 py-1.5 rounded-full bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors"
+                    >
+                        {{ cat.name }}
+                    </a>
+                </div>
             </div>
         </div>
 
@@ -185,7 +206,7 @@ const goToCheckout = () => {
         <!-- Welcome / Guest Profile Modal -->
         <div v-if="showWelcomeModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
-                <button v-if="customerStore.isConfigured" @click="showWelcomeModal = false" class="absolute right-4 top-4 text-gray-400 hover:text-gray-600">
+                <button v-if="authStore.isConfigured" @click="showWelcomeModal = false" class="absolute right-4 top-4 text-gray-400 hover:text-gray-600">
                     <X class="w-6 h-6" />
                 </button>
 
@@ -193,9 +214,9 @@ const goToCheckout = () => {
                     <div class="w-16 h-16 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-3">
                         <User class="w-8 h-8" />
                     </div>
-                    <h2 class="text-2xl font-bold text-gray-800" v-if="!customerStore.isConfigured">¡Bienvenido!</h2>
+                    <h2 class="text-2xl font-bold text-gray-800" v-if="!authStore.isConfigured">¡Bienvenido!</h2>
                     <h2 class="text-2xl font-bold text-gray-800" v-else>Tu Perfil</h2>
-                    <p class="text-sm text-gray-500 mt-1" v-if="!customerStore.isConfigured">Para que pedir sea más rápido, ¿Cómo te llamas?</p>
+                    <p class="text-sm text-gray-500 mt-1" v-if="!authStore.isConfigured">Para que pedir sea más rápido, ¿Cómo te llamas?</p>
                 </div>
 
                 <form @submit.prevent="saveGuestProfile" class="space-y-4">
@@ -209,10 +230,10 @@ const goToCheckout = () => {
                     </div>
 
                     <button type="submit" class="w-full bg-orange-500 text-white font-bold py-3 mt-2 rounded-xl shadow-lg hover:bg-orange-600 transition-colors">
-                        {{ customerStore.isConfigured ? 'Guardar Cambios' : 'Empezar a pedir' }}
+                        {{ authStore.isConfigured ? 'Guardar Cambios' : 'Empezar a pedir' }}
                     </button>
                     <!-- Skip only allowed if not configured yet (first time prompt) -->
-                    <button type="button" v-if="!customerStore.isConfigured" @click="showWelcomeModal = false" class="w-full mt-3 text-sm text-gray-500 hover:underline">
+                    <button type="button" v-if="!authStore.isConfigured" @click="showWelcomeModal = false" class="w-full mt-3 text-sm text-gray-500 hover:underline">
                         Omitir por ahora
                     </button>
                 </form>

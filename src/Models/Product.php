@@ -82,7 +82,24 @@ class Product extends BaseModel {
     }
 
     public function deleteProduct($id) {
-        $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE id = :id");
-        return $stmt->execute([':id' => $id]);
+        // 1. Obtener URL de la imagen antes de borrar
+        $stmt = $this->db->prepare("SELECT image_url FROM {$this->table} WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        $prod = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($prod && !empty($prod['image_url'])) {
+            $imageUrl = $prod['image_url'];
+            // Verificar si es una imagen local
+            if (strpos($imageUrl, '/uploads/') !== false) {
+                $filePath = __DIR__ . '/../../public' . $imageUrl;
+                if (file_exists($filePath)) {
+                    unlink($filePath);
+                }
+            }
+        }
+
+        // 2. Eliminar de la BD
+        $stmtDelete = $this->db->prepare("DELETE FROM {$this->table} WHERE id = :id");
+        return $stmtDelete->execute([':id' => $id]);
     }
 }

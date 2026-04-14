@@ -13,12 +13,23 @@ const quantity = ref(1)
 const selectedOptions = ref({}) // Estructura: { groupId: [optionId, optionId] }
 const specialInstructions = ref('') // Added special instructions
 
-// Reiniciar estado al abrir
-watch(() => props.product, () => {
+// Función para limpiar el estado
+const resetState = () => {
   quantity.value = 1
   selectedOptions.value = {}
   specialInstructions.value = ''
-  // Pre-seleccionar defaults si fuera necesario (no implementado en DB aún)
+}
+
+// Reiniciar estado al cambiar de producto
+watch(() => props.product?.id, () => {
+  resetState()
+})
+
+// Reiniciar estado al cerrar el modal
+watch(() => props.isOpen, (newVal) => {
+  if (!newVal) {
+    resetState()
+  }
 })
 
 const totalPrice = computed(() => {

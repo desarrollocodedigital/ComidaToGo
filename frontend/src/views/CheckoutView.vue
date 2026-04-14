@@ -1,45 +1,172 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cart'
-import { useCustomerStore } from '../stores/customer'
+import { useAuthStore } from '../stores/auth'
+import { useDialogStore } from '../stores/dialog'
 import axios from 'axios'
-import { ArrowLeft, Clock, MapPin, ShoppingBag, Trash2 } from 'lucide-vue-next'
+import { ArrowLeft, Clock, MapPin, ShoppingBag, Trash2, Navigation } from 'lucide-vue-next'
 
 const router = useRouter()
 const cartStore = useCartStore()
-const customerStore = useCustomerStore()
+const authStore = useAuthStore()
+const dialog = useDialogStore()
 
 const loading = ref(false)
+const detectingLocation = ref(false)
 const orderType = ref('PICKUP') // PICKUP | DELIVERY
 
 // Cargar datos locales del comensal
-const name = ref(customerStore.profile.name || '')
-const phone = ref(customerStore.profile.phone || '')
-const address = ref('') // La dirección que se enviará en el payload
-const newAddress = ref('') // Valor temporal del textArea
+const name = ref(authStore.user?.name || '')
+const phone = ref(authStore.user?.phone || '')
+const address = ref('') // Dirección activa
+const references = ref('') // Referencias activas
+const newAddress = ref('') // Valor temporal del textArea de dirección
+const newReferences = ref('') // Valor temporal del textArea de referencias
 const useNewAddress = ref(false)
 
+// La dirección que realmente se va a enviar
+const effectiveAddress = computed(() => {
+    if (orderType.value !== 'DELIVERY') return ''
+    if (useNewAddress.value) return newAddress.value.trim()
+    
+    // Si address.value es un objeto (vibración de versiones anteriores), extraer .address
+    if (typeof address.value === 'object' && address.value !== null) {
+        return (address.value.address || '').trim()
+    }
+    return String(address.value).trim()
+})
+
+const effectiveReferences = computed(() => {
+    if (orderType.value !== 'DELIVERY') return ''
+    if (useNewAddress.value) return newReferences.value.trim()
+    
+    if (typeof address.value === 'object' && address.value !== null) {
+        return (address.value.references || '').trim()
+    }
+    return references.value.trim()
+})
+
 onMounted(() => {
-    if (customerStore.profile.addresses.length > 0) {
-        address.value = customerStore.profile.addresses[0] // Set default
+    if (authStore.user?.addresses?.length > 0) {
+        address.value = authStore.user.addresses[0] // Set default
         useNewAddress.value = false
     } else {
         useNewAddress.value = true
     }
 })
 
-const submitOrder = async () => {
-    if (!name.value || !phone.value) {
-        alert("Por favor completa tus datos de contacto")
+const deleteAddress = async (idx, addr) => {
+    const isConfirmed = await dialog.confirm({
+        title: 'Eliminar Dirección',
+        message: '¿Estás seguro de que quieres eliminar esta dirección permanentemente?'
+    })
+    
+    if (isConfirmed) {
+        await authStore.removeAddress(idx)
+        // Normalizar comparación
+        const activeAddrStr = typeof address.value === 'object' ? address.value.address : address.value
+        const targetAddrStr = typeof addr === 'object' ? addr.address : addr
+
+        if (activeAddrStr === targetAddrStr) {
+            if (authStore.user.addresses.length > 0) {
+                const first = authStore.user.addresses[0]
+                address.value = first
+                references.value = typeof first === 'object' ? first.references : ''
+            } else {
+                address.value = ''
+                references.value = ''
+                useNewAddress.value = true
+            }
+        }
+    }
+}
+
+const detectLocation = () => {
+    if (!navigator.geolocation) {
+        dialog.alert({ title: 'No soportado', message: 'Tu navegador no soporta geolocalización' })
         return
     }
 
-    // Auto-guardar en el perfil local:
-    customerStore.saveProfile(name.value, phone.value)
+    detectingLocation.value = true
+    navigator.geolocation.getCurrentPosition(async (position) => {
+        try {
+            const { latitude, longitude } = position.coords
+            // Reverse geocoding with Nominatim (OpenStreetMap)
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=jsonv2`, {
+                headers: {
+                    'Accept-Language': 'es'
+                }
+            })
+            const data = await response.json()
+            
+            if (data && data.address) {
+                const a = data.address;
+                const parts = [];
+                
+                // Calle
+                if (a.road) parts.push(a.road);
+                
+                // Localidad (village, hamlet, suburb)
+                const neighborhood = a.village || a.hamlet || a.suburb || a.neighbourhood;
+                if (neighborhood) parts.push(neighborhood);
+                
+                // Municipio / Ciudad
+                const city = a.city || a.municipality || a.town || a.county;
+                if (city) parts.push(city);
+                
+                // Estado
+                if (a.state) parts.push(a.state);
+
+                const formattedAddress = parts.join(', ');
+                
+                newAddress.value = formattedAddress;
+                address.value = formattedAddress;
+                useNewAddress.value = true
+            }
+        } catch (e) {
+            console.error("Error reverse geocoding", e)
+            dialog.alert({ title: 'Error', message: 'No pudimos obtener la dirección exacta, por favor escríbela manualmente.' })
+        } finally {
+            detectingLocation.value = false
+        }
+    }, (error) => {
+        detectingLocation.value = false
+        console.error("Geolocation error", error)
+        let msg = 'Error al obtener ubicación.'
+        if (error.code === 1) msg = 'Por favor permite el acceso a tu ubicación en el navegador.'
+        dialog.alert({ title: 'Permiso denegado', message: msg })
+    }, {
+        enableHighAccuracy: true,
+        timeout: 8000,
+        maximumAge: 0
+    })
+}
+
+const submitOrder = async () => {
+    if (!name.value || !phone.value) {
+        await dialog.alert({ 
+            title: 'Datos incompletos', 
+            message: 'Por favor completa tu nombre y teléfono para poder procesar tu pedido.' 
+        })
+        return
+    }
+
+    if (orderType.value === 'DELIVERY' && !effectiveAddress.value) {
+        await dialog.alert({ 
+            title: 'Dirección faltante', 
+            message: 'Has seleccionado entrega a domicilio. Por favor, ingresa una dirección de entrega válida.' 
+        })
+        return
+    }
+
+    // Auto-guardar en el perfil local y servidor:
+    await authStore.setGuestProfile(name.value, phone.value)
     if (orderType.value === 'DELIVERY' && useNewAddress.value && newAddress.value.trim() !== '') {
-        customerStore.addAddress(newAddress.value)
-        address.value = newAddress.value // Update actual payload var
+        await authStore.addAddress({
+            address: newAddress.value,
+            references: newReferences.value
+        })
     }
 
     loading.value = true
@@ -48,7 +175,8 @@ const submitOrder = async () => {
             company_id: cartStore.companyId,
             customer_name: name.value,
             customer_phone: phone.value,
-            customer_address: orderType.value === 'DELIVERY' ? address.value : '',
+            customer_address: effectiveAddress.value,
+            customer_references: effectiveReferences.value,
             order_type: orderType.value,
             items: cartStore.items.map(item => ({
                 product_id: item.productId,
@@ -66,7 +194,10 @@ const submitOrder = async () => {
 
     } catch (e) {
         console.error(e)
-        alert(e.response?.data?.message || "Error al crear pedido :(")
+        await dialog.alert({ 
+            title: 'Error al crear pedido', 
+            message: e.response?.data?.message || "No pudimos procesar tu pedido en este momento. Por favor, intenta de nuevo."
+        })
     } finally {
         loading.value = false
     }
@@ -77,15 +208,11 @@ const submitOrder = async () => {
     <div class="min-h-screen bg-gray-50 pb-20">
         <header class="bg-white p-4 shadow-sm flex items-center justify-between">
             <div class="flex items-center gap-4">
-                <router-link to="/" class="p-2 hover:bg-gray-100 rounded-full">
+                <button @click="router.back()" class="p-2 hover:bg-gray-100 rounded-full">
                     <ArrowLeft class="w-6 h-6" />
-                </router-link>
+                </button>
                 <h1 class="font-bold text-lg">Finalizar Pedido</h1>
             </div>
-            <button @click="cartStore.clearCart(); router.push('/')" class="text-sm text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg border border-red-200 transition-colors font-medium flex items-center gap-1">
-                <Trash2 class="w-4 h-4" />
-                Vaciar
-            </button>
         </header>
 
         <main class="max-w-2xl mx-auto p-4 space-y-6 mt-4">
@@ -147,14 +274,33 @@ const submitOrder = async () => {
                     </div>
 
                     <div v-if="orderType === 'DELIVERY'" class="space-y-3">
-                        <label class="block text-sm font-medium text-gray-700">Dirección de Entrega</label>
+                        <div class="flex items-center justify-between">
+                            <label class="block text-sm font-medium text-gray-700">Dirección de Entrega</label>
+                            <button 
+                                v-if="!authStore.user.addresses || authStore.user.addresses.length === 0 || useNewAddress"
+                                @click="detectLocation"
+                                :disabled="detectingLocation"
+                                class="text-xs font-bold text-orange-600 flex items-center gap-1 hover:text-orange-700 disabled:opacity-50 transition-colors"
+                            >
+                                <Navigation :class="{ 'animate-pulse': detectingLocation }" class="w-3 h-3" />
+                                {{ detectingLocation ? 'Detectando...' : 'Usar ubicación actual' }}
+                            </button>
+                        </div>
                         
                         <!-- Direcciones Guardadas -->
-                        <div v-if="customerStore.profile.addresses.length > 0" class="space-y-2 mb-3">
-                            <label v-for="(addr, idx) in customerStore.profile.addresses" :key="idx" class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" :class="{ 'border-orange-500 bg-orange-50': address === addr && !useNewAddress }">
-                                <input type="radio" v-model="address" :value="addr" @change="useNewAddress = false" class="w-4 h-4 text-orange-600 focus:ring-orange-500">
-                                <span class="text-sm text-gray-800">{{ addr }}</span>
-                            </label>
+                        <div v-if="authStore.user.addresses?.length > 0" class="space-y-2 mb-3">
+                            <div v-for="(addr, idx) in authStore.user.addresses" :key="idx" class="flex items-center p-3 border rounded-lg transition-colors group" :class="{ 'border-orange-500 bg-orange-50': address === addr && !useNewAddress }">
+                                <label class="flex-1 flex items-center gap-3 cursor-pointer">
+                                    <input type="radio" v-model="address" :value="addr" @change="useNewAddress = false; references = (typeof addr === 'object' ? addr.references : '')" class="w-4 h-4 text-orange-600 focus:ring-orange-500">
+                                    <div class="flex flex-col">
+                                        <span class="text-sm text-gray-800">{{ typeof addr === 'object' ? addr.address : addr }}</span>
+                                        <span v-if="typeof addr === 'object' && addr.references" class="text-xs text-gray-500 italic">{{ addr.references }}</span>
+                                    </div>
+                                </label>
+                                <button type="button" @click.prevent="deleteAddress(idx, addr)" class="p-2 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Eliminar dirección">
+                                    <Trash2 class="w-4 h-4" />
+                                </button>
+                            </div>
                             <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" :class="{ 'border-orange-500 bg-orange-50': useNewAddress }">
                                 <input type="radio" v-model="useNewAddress" :value="true" @change="address = newAddress" class="w-4 h-4 text-orange-600 focus:ring-orange-500">
                                 <span class="text-sm font-medium text-gray-800">Otra dirección...</span>
@@ -162,14 +308,21 @@ const submitOrder = async () => {
                         </div>
 
                         <!-- Nueva Dirección -->
-                        <textarea 
-                            v-if="customerStore.profile.addresses.length === 0 || useNewAddress"
-                            v-model="newAddress"
-                            @input="address = newAddress; useNewAddress = true"
-                            rows="2"
-                            class="w-full border border-gray-300 rounded-lg p-3 shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
-                            placeholder="Escribe tu calle, número, colonia, referencias..."
-                        ></textarea>
+                        <div v-if="!authStore.user.addresses || authStore.user.addresses.length === 0 || useNewAddress" class="space-y-3">
+                            <textarea 
+                                v-model="newAddress"
+                                @input="address = newAddress; useNewAddress = true"
+                                rows="2"
+                                class="w-full border border-gray-300 rounded-lg p-3 shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
+                                placeholder="Escribe tu calle, número, colonia..."
+                            ></textarea>
+                            <textarea 
+                                v-model="newReferences"
+                                rows="1"
+                                class="w-full border border-gray-300 rounded-lg p-3 shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none text-sm"
+                                placeholder="Referencias (ej: Portón rojo, junto a la tienda...)"
+                            ></textarea>
+                        </div>
                     </div>
                 </div>
 
@@ -182,7 +335,14 @@ const submitOrder = async () => {
                      </div>
                      <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono (WhatsApp)</label>
-                        <input type="tel" v-model="phone" class="w-full border border-gray-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-orange-500" placeholder="662 123 4567">
+                        <input 
+                            type="tel" 
+                            v-model="phone" 
+                            inputmode="numeric"
+                            @input="phone = phone.replace(/\D/g, '')"
+                            class="w-full border border-gray-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-orange-500" 
+                            placeholder="6621234567"
+                        >
                      </div>
                 </div>
 
