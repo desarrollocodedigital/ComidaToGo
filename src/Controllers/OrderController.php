@@ -23,6 +23,19 @@ class OrderController {
         echo json_encode($order);
     }
     
+    // GET /api.php/orders/customer?phone=...
+    public function getByCustomer() {
+        $phone = $_GET['phone'] ?? null;
+        if (!$phone) {
+            http_response_code(400);
+            echo json_encode(["message" => "Teléfono requerido"]);
+            return;
+        }
+
+        $orders = $this->model->getOrdersByPhone($phone);
+        echo json_encode($orders);
+    }
+
     // GET /api.php/orders?company_id=...
     public function getByCompany($companyId) {
         $orders = $this->model->getOrdersByCompany($companyId);

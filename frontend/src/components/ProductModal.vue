@@ -4,7 +4,9 @@ import { X, Plus, Minus } from 'lucide-vue-next'
 
 const props = defineProps({
   isOpen: Boolean,
-  product: Object
+  product: Object,
+  showImage: { type: Boolean, default: true },
+  showDescription: { type: Boolean, default: true }
 })
 
 const emit = defineEmits(['close', 'add-to-cart'])
@@ -120,7 +122,7 @@ const addToCart = () => {
     <div class="bg-white w-full max-w-lg sm:rounded-xl shadow-2xl pointer-events-auto flex flex-col max-h-[90vh] overflow-hidden transform transition-all">
       
       <!-- Header with Image -->
-      <div class="relative h-48 bg-gray-200 shrink-0">
+      <div v-if="showImage" class="relative h-48 bg-gray-200 shrink-0">
         <img v-if="product?.image_url" :src="product.image_url" class="absolute inset-0 w-full h-full object-cover" />
         <div v-else class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
           <!-- Fallback image logic if needed -->
@@ -130,10 +132,17 @@ const addToCart = () => {
         </button>
       </div>
 
+      <!-- Close shortcut for without image -->
+      <div v-if="!showImage" class="flex justify-end p-4 pb-0">
+        <button @click="$emit('close')" class="bg-gray-100 p-2 rounded-full hover:bg-gray-200 transition-colors">
+          <X class="w-5 h-5 text-gray-800" />
+        </button>
+      </div>
+
       <!-- Content Scrollable -->
       <div class="p-6 overflow-y-auto">
-        <h2 class="text-2xl font-bold text-gray-900 mb-2">{{ product?.name }}</h2>
-        <p class="text-gray-500 mb-6">{{ product?.description }}</p>
+        <h2 class="text-2xl font-bold text-gray-900" :class="{ 'mb-2': showDescription, 'mb-6': !showDescription }">{{ product?.name }}</h2>
+        <p v-if="showDescription" class="text-gray-500 mb-6">{{ product?.description }}</p>
 
         <!-- Modifier Groups -->
         <div v-for="group in product?.modifier_groups" :key="group.id" class="mb-8">

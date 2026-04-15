@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import axios from 'axios'
-import { LayoutDashboard, ChefHat, CreditCard, BarChart3, Settings, Users, UtensilsCrossed, ShoppingBag, LogOut } from 'lucide-vue-next'
+import { LayoutDashboard, ChefHat, CreditCard, BarChart3, Settings, Users, UtensilsCrossed, Utensils, ShoppingBag, LogOut } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 const companyName = ref('Mi Restaurante')
@@ -106,6 +106,11 @@ onMounted(loadData)
                     <Users class="w-10 h-10 text-purple-500 mx-auto mb-3 group-hover:scale-110 transition-transform" />
                     <h3 class="font-bold text-gray-800">Mi Equipo</h3>
                     <p class="text-xs text-gray-400 mt-1">Empleados y roles</p>
+                </router-link>
+                <router-link to="/admin/tables" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-orange-200 transition-all group text-center">
+                    <Utensils class="w-10 h-10 text-orange-500 mx-auto mb-3 group-hover:scale-110 transition-transform" />
+                    <h3 class="font-bold text-gray-800">Mis Mesas</h3>
+                    <p class="text-xs text-gray-400 mt-1">Distribución y capacidad</p>
                 </router-link>
                 <router-link to="/admin/settings" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-300 transition-all group text-center">
                     <Settings class="w-10 h-10 text-gray-500 mx-auto mb-3 group-hover:scale-110 transition-transform" />

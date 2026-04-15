@@ -1,10 +1,11 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { Clock, ChefHat, CheckCircle, MapPin } from 'lucide-vue-next'
 
 const route = useRoute()
+const router = useRouter()
 const order = ref(null)
 const loading = ref(true)
 let pollInterval = null
@@ -83,8 +84,10 @@ const getStatusText = (status) => {
 
                 <div v-else-if="order.status === 'READY'">
                     <CheckCircle class="w-16 h-16 mx-auto mb-4 text-white" />
-                    <h1 class="text-3xl font-bold">¡Está Listo!</h1>
-                    <p class="opacity-90">Ya puedes pasar por tu pedido</p>
+                    <h1 class="text-3xl font-bold">¡Listo!</h1>
+                    <p class="opacity-95 font-medium">
+                        {{ order.order_type === 'DELIVERY' ? 'Tu pedido está en camino' : 'Ya puedes pasar por tu pedido' }}
+                    </p>
                 </div>
                  <div v-else>
                     <h1 class="text-2xl font-bold">{{ getStatusText(order.status) }}</h1>
@@ -94,10 +97,16 @@ const getStatusText = (status) => {
             <!-- Details -->
             <div class="p-6 bg-gray-50">
                 <h3 class="font-bold text-gray-900 mb-4">Detalles del Pedido #{{ order.id }}</h3>
-                <div class="space-y-3">
-                    <div v-for="item in order.items" :key="item.id" class="flex justify-between text-sm">
-                        <span><span class="font-bold">{{ item.quantity }}x</span> {{ item.product_name }}</span>
-                        <span class="font-medium">${{ item.unit_price }}</span>
+                <div class="space-y-4">
+                    <div v-for="item in order.items" :key="item.id" class="border-b last:border-0 border-gray-100 pb-4 last:pb-0">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-gray-800"><span class="font-bold">{{ item.quantity }}x</span> {{ item.product_name }}</span>
+                            <span class="font-bold text-gray-900">${{ Number(item.unit_price).toFixed(2) }}</span>
+                        </div>
+                        <!-- Modificadores e Instrucciones -->
+                        <div v-if="item.modifiers" class="text-[11px] text-gray-500 bg-gray-100/50 p-2 rounded-lg white-space-pre-line leading-relaxed">
+                            <span style="white-space: pre-line;">{{ item.modifiers }}</span>
+                        </div>
                     </div>
                 </div>
                 <div class="border-t border-gray-200 mt-4 pt-4 flex justify-between font-bold text-lg">
@@ -106,8 +115,13 @@ const getStatusText = (status) => {
                 </div>
             </div>
             
-            <div class="p-6 text-center">
-                 <router-link to="/" class="text-orange-600 font-bold hover:underline">Volver al Inicio</router-link>
+            <div class="p-6 text-center space-y-3">
+                 <button @click="router.push('/mis-pedidos')" class="block w-full py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-black transition-colors">
+                    Volver a Mis Pedidos
+                 </button>
+                 <button @click="router.push('/')" class="block w-full py-2 text-slate-500 font-medium hover:text-slate-800 transition-colors">
+                    Ir al Inicio
+                 </button>
             </div>
         </div>
     </div>

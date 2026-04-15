@@ -9,7 +9,10 @@ class Order extends BaseModel {
     protected $table = 'orders';
 
     public function getOrderWithItems($id) {
-        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE id = :id");
+        $stmt = $this->db->prepare("SELECT o.*, t.name as table_name, t.table_number 
+                                    FROM {$this->table} o 
+                                    LEFT JOIN restaurant_tables t ON o.table_id = t.id 
+                                    WHERE o.id = :id");
         $stmt->execute([':id' => $id]);
         $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -22,9 +25,32 @@ class Order extends BaseModel {
     }
 
     public function getOrdersByCompany($companyId, $limit = 50) {
-        $sql = "SELECT * FROM {$this->table} WHERE company_id = :cid ORDER BY created_at DESC LIMIT :limit";
+        $sql = "SELECT o.*, t.name as table_name, t.table_number 
+                FROM {$this->table} o 
+                LEFT JOIN restaurant_tables t ON o.table_id = t.id 
+                WHERE o.company_id = :cid 
+                ORDER BY o.created_at DESC LIMIT :limit";
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':cid', $companyId, PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($orders as &$order) {
+            $order['items'] = $this->getOrderItems($order['id']);
+        }
+
+        return $orders;
+    }
+
+    public function getOrdersByPhone($phone, $limit = 20) {
+        $sql = "SELECT o.*, c.name as company_name, c.logo_url as company_logo 
+                FROM {$this->table} o 
+                JOIN companies c ON o.company_id = c.id 
+                WHERE o.customer_phone = :phone 
+                ORDER BY o.created_at DESC LIMIT :limit";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':phone', $phone);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
         $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -85,7 +111,20 @@ class Order extends BaseModel {
 
         $sql = "UPDATE {$this->table} SET $fields WHERE id = :id";
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute($params);
+        $result = $stmt->execute($params);
+        
+        // Liberar mesa si el pedido finaliza
+        if ($result && in_array($data['status'], ['COMPLETED', 'CANCELLED', 'REJECTED'])) {
+            $stmtOrder = $this->db->prepare("SELECT table_id FROM {$this->table} WHERE id = :id AND order_type = 'DINE_IN'");
+            $stmtOrder->execute([':id' => $id]);
+            $orderRec = $stmtOrder->fetch(PDO::FETCH_ASSOC);
+            if ($orderRec && $orderRec['table_id']) {
+                $stmtTable = $this->db->prepare("UPDATE restaurant_tables SET status = 'AVAILABLE' WHERE id = :tid");
+                $stmtTable->execute([':tid' => $orderRec['table_id']]);
+            }
+        }
+        
+        return $result;
     }
 
     public function createOrderWithItems($input) {
@@ -134,7 +173,7 @@ class Order extends BaseModel {
             }
 
             $sql = "INSERT INTO {$this->table} (company_id, customer_name, customer_phone, customer_address, customer_references, order_type, table_id, payment_method, cash_register_shift_id, total_amount, status, scheduled_at) 
-                    VALUES (:cid, :cname, :cphone, :caddr, :cref, :otype, :tid, :pm, :crsid, :total, 'PENDING', :sched)";
+                    VALUES (:cid, :cname, :cphone, :caddr, :cref, :otype, :tid, :pm, :crsid, :total, :status, :sched)";
             
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
@@ -148,6 +187,7 @@ class Order extends BaseModel {
                 ':pm' => $input['payment_method'] ?? 'CASH',
                 ':crsid' => $input['cash_register_shift_id'] ?? null,
                 ':total' => $totalAmount,
+                ':status' => $input['status'] ?? 'PENDING',
                 ':sched' => $input['scheduled_at'] ?? null
             ]);
             
@@ -165,6 +205,12 @@ class Order extends BaseModel {
                     ':price' => $itemData['unit_price'],
                     ':mods' => $itemData['selected_modifiers']
                 ]);
+            }
+
+            // Ocupar la mesa si es para comer en el local
+            if ($input['order_type'] === 'DINE_IN' && !empty($input['table_id'])) {
+                $stmtTable = $this->db->prepare("UPDATE restaurant_tables SET status = 'OCCUPIED' WHERE id = :tid");
+                $stmtTable->execute([':tid' => $input['table_id']]);
             }
 
             $this->db->commit();

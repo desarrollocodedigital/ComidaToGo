@@ -13,12 +13,17 @@ class Table extends BaseModel {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function createTable($companyId, $name, $capacity) {
-        $stmt = $this->db->prepare("INSERT INTO {$this->table} (company_id, name, capacity) VALUES (?, ?, ?)");
-        if ($stmt->execute([$companyId, $name, $capacity])) {
+    public function createTable($companyId, $name, $capacity, $tableNumber = null) {
+        $stmt = $this->db->prepare("INSERT INTO {$this->table} (company_id, name, capacity, table_number) VALUES (?, ?, ?, ?)");
+        if ($stmt->execute([$companyId, $name, $capacity, $tableNumber])) {
             return ["success" => true, "id" => $this->db->lastInsertId()];
         }
         return ["success" => false];
+    }
+
+    public function updateTable($id, $name, $capacity, $tableNumber = null) {
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET name = ?, capacity = ?, table_number = ? WHERE id = ?");
+        return $stmt->execute([$name, $capacity, $tableNumber, $id]);
     }
 
     public function updateStatus($id, $status) {

@@ -43,6 +43,17 @@ const routes = [
         component: () => import('../views/admin/UserManagementView.vue'),
         meta: { requiresAuth: true, roles: ['OWNER'] }
     },
+    {
+        path: '/admin/tables',
+        name: 'table-manager',
+        component: () => import('../views/admin/TableManagementView.vue'),
+        meta: { requiresAuth: true, roles: ['OWNER'] }
+    },
+    {
+        path: '/mis-pedidos',
+        name: 'my-orders',
+        component: () => import('../views/MyOrdersView.vue')
+    },
     // --- ROLE-BASED ROUTES ---
     {
         path: '/cocina',
