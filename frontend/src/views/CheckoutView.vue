@@ -24,6 +24,7 @@ const references = ref('') // Referencias activas
 const newAddress = ref('') // Valor temporal del textArea de dirección
 const newReferences = ref('') // Valor temporal del textArea de referencias
 const useNewAddress = ref(false)
+const scheduledTime = ref('') // Hora para pasar a recoger
 
 // La dirección que realmente se va a enviar
 const effectiveAddress = computed(() => {
@@ -48,6 +49,12 @@ const effectiveReferences = computed(() => {
 })
 
 onMounted(() => {
+    // Seguridad: Redirigir si no está autenticado
+    if (!authStore.isAuthenticated) {
+        router.push('/')
+        return
+    }
+
     if (authStore.user?.addresses?.length > 0) {
         address.value = authStore.user.addresses[0] // Set default
         useNewAddress.value = false
@@ -178,6 +185,13 @@ const submitOrder = async () => {
             customer_address: effectiveAddress.value,
             customer_references: effectiveReferences.value,
             order_type: orderType.value,
+            scheduled_at: orderType.value === 'PICKUP' && scheduledTime.value ? (() => {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day} ${scheduledTime.value}:00`;
+            })() : null,
             items: cartStore.items.map(item => ({
                 product_id: item.productId,
                 quantity: item.quantity,
@@ -261,7 +275,7 @@ const submitOrder = async () => {
                         >
                             <input type="radio" value="PICKUP" v-model="orderType" class="hidden">
                             <ShoppingBag class="w-6 h-6" />
-                            <span class="font-medium">Para llevar</span>
+                            <span class="font-medium">Pasar a recoger</span>
                         </label>
                         <label 
                             class="border rounded-xl p-4 flex flex-col items-center gap-2 cursor-pointer transition-colors"
@@ -271,6 +285,19 @@ const submitOrder = async () => {
                             <MapPin class="w-6 h-6" />
                             <span class="font-medium">Domicilio</span>
                         </label>
+                    </div>
+
+                    <div v-if="orderType === 'PICKUP'" class="mt-2 p-4 bg-orange-50/50 rounded-xl border border-orange-100 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div class="flex items-center gap-3 mb-2">
+                            <Clock class="w-5 h-5 text-orange-600" />
+                            <label class="block text-sm font-bold text-gray-700">¿A qué hora pasarás por tu pedido?</label>
+                        </div>
+                        <input 
+                            type="time" 
+                            v-model="scheduledTime" 
+                            class="w-full bg-white border border-gray-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-orange-500 font-medium text-gray-700 shadow-sm"
+                        >
+
                     </div>
 
                     <div v-if="orderType === 'DELIVERY'" class="space-y-3">

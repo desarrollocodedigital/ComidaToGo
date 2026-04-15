@@ -17,13 +17,23 @@
         </button>
         <!-- Modo Pedidos Web -->
         <button 
-            @click="activeView = 'WEB'"
-            :class="['w-full h-16 rounded-2xl flex flex-col items-center justify-center shadow-sm transition-colors relative', activeView === 'WEB' ? 'bg-orange-500 text-white shadow-md' : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-200']">
+            @click="activeView = 'ORDERS_WEB'"
+            :class="['w-full h-16 rounded-2xl flex flex-col items-center justify-center shadow-sm transition-colors relative', activeView === 'ORDERS_WEB' ? 'bg-orange-500 text-white shadow-md' : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-200']">
           <div v-if="pendingWebOrders.length > 0" class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-white text-xs font-black flex items-center justify-center animate-pulse">
               {{ pendingWebOrders.length }}
           </div>
-          <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-          <span class="text-xs font-bold text-center leading-tight mt-1">Pedidos<br>Web</span>
+          <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+          <span class="text-[10px] font-bold text-center leading-tight">Pedidos Web</span>
+        </button>
+
+        <button 
+            @click="activeView = 'ORDERS_LOCAL'"
+            :class="['w-full h-16 rounded-2xl flex flex-col items-center justify-center shadow-sm transition-colors relative', activeView === 'ORDERS_LOCAL' ? 'bg-slate-800 text-white shadow-md' : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-200']">
+          <div v-if="preparingLocalOrders.length > 0" class="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full text-white text-xs font-black flex items-center justify-center animate-pulse">
+              {{ preparingLocalOrders.length }}
+          </div>
+          <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+          <span class="text-[10px] font-bold text-center leading-tight">Pedidos Local</span>
         </button>
       </div>
 
@@ -75,91 +85,420 @@
     </div>
 
     <!-- MAIN AREA: PEDIDOS WEB -->
-    <div v-if="activeView === 'WEB'" class="flex-1 flex flex-col h-full bg-slate-50 overflow-y-auto">
-        <!-- Pedidos Pendientes (Cajera acepta) -->
+    <div v-if="activeView === 'ORDERS_WEB'" class="flex-1 flex flex-col h-full bg-slate-50 overflow-y-auto">
+        <!-- 1. Pedidos Web Pendientes -->
         <div class="p-6 border-b border-slate-200 bg-red-50/50">
             <h2 class="text-xl font-bold text-red-700 mb-4 flex items-center gap-2">
-                🔔 Nuevos Pedidos Web
-                <span class="bg-red-500 text-white px-2 py-0.5 rounded-full text-sm">{{ pendingWebOrders.length }}</span>
+                Pedidos Web Pendientes
+                <span v-if="pendingWebOrders.length > 0" class="bg-red-500 text-white px-2 py-0.5 rounded-full text-sm">{{ pendingWebOrders.length }}</span>
             </h2>
             <div class="grid gap-3">
-                <div v-for="order in pendingWebOrders" :key="order.id" class="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-red-500">
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <h3 class="font-black text-xl text-slate-800">#{{ order.id }} · {{ order.customer_name }}</h3>
-                            <p class="text-sm text-gray-500">
-                                {{ order.customer_phone || '' }} · 
-                                <span v-if="order.order_type === 'DELIVERY'">🛵 Domicilio</span>
-                                <span v-else>🥡 Recoger</span>
-                            </p>
-                            <p v-if="order.customer_address" class="text-xs text-gray-400 mt-1">📍 {{ order.customer_address }}</p>
+                <div v-for="order in pendingWebOrders" :key="order.id" 
+                    :class="[
+                        'bg-white rounded-3xl shadow-sm border-l-[6px] transition-all relative overflow-hidden',
+                        order.order_type === 'DELIVERY' ? 'border-purple-500 bg-purple-50/10' : 
+                        order.order_type === 'PICKUP' ? 'border-blue-500 bg-blue-50/10' : 
+                        'border-green-500 bg-green-50/10'
+                    ]"
+                >
+                    <div class="p-5">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-4">
+                                <div :class="[
+                                    'w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner',
+                                    order.order_type === 'DELIVERY' ? 'bg-purple-100 text-purple-600' : 
+                                    order.order_type === 'PICKUP' ? 'bg-blue-100 text-blue-600' : 
+                                    'bg-green-100 text-green-600'
+                                ]">
+                                    #{{ order.id }}
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="font-black text-xl text-slate-800">{{ order.customer_name }}</h3>
+                                        <span v-if="order.order_type === 'DINE_IN'" class="bg-green-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">
+                                            {{ (order.table_number || order.table_name || '?').toString().toLowerCase().startsWith('mesa') ? (order.table_number || order.table_name) : `Mesa ${order.table_number || order.table_name || '?'}` }}
+                                        </span>
+                                        <span v-else-if="order.order_type === 'TAKEAWAY'" class="bg-green-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">
+                                            Para llevar
+                                        </span>
+                                        <span v-else-if="order.order_type === 'DELIVERY'" class="bg-purple-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">
+                                            Domicilio
+                                        </span>
+                                        <span v-else class="bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">
+                                            Recoger {{ order.scheduled_at ? `(${formatTime(order.scheduled_at)})` : '' }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-4 mt-1 text-sm text-slate-500 font-bold">
+                                        <div class="flex items-center gap-1" v-if="order.customer_phone">
+                                            <Phone class="w-3.5 h-3.5" /> {{ order.customer_phone }}
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <component :is="order.order_type === 'DELIVERY' ? Truck : (order.order_type === 'DINE_IN' ? Utensils : ShoppingBag)" class="w-3.5 h-3.5" />
+                                            {{ order.order_type === 'DELIVERY' ? 'Envío' : (order.order_type === 'DINE_IN' ? 'Mesa' : 'En Local') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div :class="['px-4 py-2 rounded-2xl text-sm font-black flex items-center gap-2 shadow-sm border border-white/50', getTimerColor(order.created_at)]">
+                                <Clock class="w-4 h-4" /> {{ formatElapsed(order.created_at) }}
+                            </div>
                         </div>
-                        <div :class="['px-3 py-1 rounded-full text-sm font-black', getTimerColor(order.created_at)]">
-                            ⏱ {{ formatElapsed(order.created_at) }}
+
+                        <div v-if="order.customer_address" class="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-100 flex flex-col gap-2 text-sm text-slate-600">
+                             <div class="flex items-start gap-2">
+                                <MapPin class="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
+                                <div>
+                                    <span class="font-black block text-xs text-slate-400 uppercase tracking-tighter">Dirección de Entrega</span>
+                                    {{ order.customer_address }}
+                                </div>
+                             </div>
+                             <div v-if="order.customer_references" class="flex items-start gap-2 pt-2 border-t border-slate-200/50">
+                                <div class="w-4 h-4 flex items-center justify-center shrink-0 mt-0.5">
+                                    <span class="text-purple-400 text-xs">ℹ️</span>
+                                </div>
+                                <div class="italic text-slate-500 text-[11px]">
+                                    <span class="font-black not-italic inline-block text-[10px] text-slate-400 uppercase tracking-tighter mr-1">Ref:</span>
+                                    {{ order.customer_references }}
+                                </div>
+                             </div>
                         </div>
-                    </div>
-                    <div class="space-y-1 my-3 py-2 border-t border-b border-gray-100 text-sm">
-                        <div v-for="item in order.items" :key="item.id">
-                            <span class="font-black text-orange-600">{{ item.quantity }}x</span> {{ item.product_name }}
-                            <span v-if="item.modifiers" class="text-xs text-gray-400 ml-2">({{ item.modifiers }})</span>
+
+                        <div class="bg-white rounded-2xl border border-slate-100 overflow-hidden mb-4">
+                            <div class="bg-slate-50/50 px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 flex justify-between">
+                                <span>Detalle del Pedido</span>
+                                <span>Cantidad</span>
+                            </div>
+                            <div class="divide-y divide-slate-50">
+                                <div v-for="item in order.items" :key="item.id" class="px-4 py-3 flex justify-between items-start">
+                                    <div>
+                                        <span class="font-bold text-slate-700">{{ item.product_name }}</span>
+                                        <div v-if="item.modifiers" class="text-[11px] text-slate-400 font-medium leading-tight mt-0.5 italic">
+                                            {{ item.modifiers }}
+                                        </div>
+                                    </div>
+                                    <div class="bg-slate-100 text-slate-600 px-2 py-1 rounded-lg font-black text-xs">
+                                        {{ item.quantity }}x
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-lg font-black text-slate-800">${{ Number(order.total_amount).toFixed(2) }}</span>
-                        <div class="flex gap-2">
-                            <button @click="rejectOrder(order.id)" class="px-4 py-2 bg-red-100 text-red-700 font-bold rounded-lg hover:bg-red-200 text-sm">Rechazar</button>
-                            <button @click="acceptOrder(order.id)" class="px-6 py-2 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 shadow-md text-sm">✅ Aceptar → Cocina</button>
+
+                        <div class="flex justify-between items-center bg-slate-50 -mx-5 -mb-5 p-5 border-t border-slate-100">
+                            <div>
+                                <span class="text-[10px] font-black text-slate-400 uppercase block leading-none mb-1">Total a Pagar</span>
+                                <span class="text-2xl font-black text-slate-800">${{ Number(order.total_amount).toFixed(2) }}</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button @click="rejectOrder(order.id)" class="flex items-center gap-2 px-4 py-3 bg-white border border-red-100 text-red-500 font-bold rounded-2xl hover:bg-red-50 transition-all text-sm group">
+                                    <XCircle class="w-5 h-5 group-hover:scale-110 transition-transform" /> Rechazar
+                                </button>
+                                <button @click="acceptOrder(order.id)" class="flex items-center gap-2 px-6 py-3 bg-orange-500 text-white font-black rounded-2xl hover:bg-orange-600 shadow-lg shadow-orange-100 transition-all text-sm group">
+                                    <CheckCircle2 class="w-5 h-5 group-hover:scale-110 transition-transform" /> Aceptar Pedido <ArrowRight class="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <p v-if="pendingWebOrders.length === 0" class="text-center text-gray-400 py-6">No hay pedidos nuevos</p>
+                <p v-if="pendingWebOrders.length === 0" class="text-center text-gray-400 py-12">No hay pedidos web pendientes</p>
+            </div>
+        </div>
+        <!-- 1.1 Pedidos Web en Preparación -->
+        <div class="p-6 border-b border-slate-200">
+            <h2 class="text-xl font-bold text-slate-700 mb-4 flex items-center gap-2">
+                Pedidos Web en preparación
+                <span v-if="preparingWebOrders.length > 0" class="bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full text-sm">{{ preparingWebOrders.length }}</span>
+            </h2>
+            <div class="grid gap-6">
+                <div v-for="order in preparingWebOrders" :key="order.id" 
+                    :class="[
+                        'bg-white rounded-3xl shadow-sm border-l-[6px] transition-all relative overflow-hidden',
+                        order.order_type === 'DELIVERY' ? 'border-purple-500 bg-purple-50/10' : 'border-blue-500 bg-blue-50/10'
+                    ]"
+                >
+                    <div class="p-5">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-4">
+                                <div :class="[
+                                    'w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner',
+                                    order.order_type === 'DELIVERY' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
+                                ]">
+                                    #{{ order.id }}
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="font-black text-xl text-slate-800">{{ order.customer_name }}</h3>
+                                        <span v-if="order.order_type === 'DELIVERY'" class="bg-purple-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">Domicilio</span>
+                                        <span v-else class="bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">Recoger {{ order.scheduled_at ? `(${formatTime(order.scheduled_at)})` : '' }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-4 mt-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        {{ translateStatus(order.status) }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div :class="['px-4 py-2 rounded-2xl text-sm font-black flex items-center gap-2 shadow-sm border border-white/50', getTimerColor(order.created_at)]">
+                                <Clock class="w-4 h-4" /> {{ formatElapsed(order.created_at) }}
+                            </div>
+                        </div>
+
+                        <div v-if="order.customer_address" class="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-100 flex flex-col gap-2 text-sm text-slate-600">
+                             <div class="flex items-start gap-2">
+                                <MapPin class="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
+                                <div>
+                                    <span class="font-black block text-xs text-slate-400 uppercase tracking-tighter">Dirección de Entrega</span>
+                                    {{ order.customer_address }}
+                                </div>
+                             </div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                            <div class="bg-slate-50/50 px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 flex justify-between">
+                                <span>Detalle del Pedido</span>
+                                <span>Cant.</span>
+                            </div>
+                            <div class="divide-y divide-slate-50 overflow-y-auto max-h-48 no-scrollbar">
+                                <div v-for="item in order.items" :key="item.id" class="px-4 py-3 flex justify-between items-start">
+                                    <div>
+                                        <span class="font-bold text-slate-700">{{ item.product_name }}</span>
+                                        <div v-if="item.modifiers" class="text-[11px] text-slate-400 font-medium leading-tight mt-0.5 italic">
+                                            {{ item.modifiers }}
+                                        </div>
+                                    </div>
+                                    <div class="bg-slate-100 text-slate-600 px-2 py-1 rounded-lg font-black text-xs">
+                                        {{ item.quantity }}x
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p v-if="preparingWebOrders.length === 0" class="text-center text-gray-400 py-12">No hay pedidos web en preparación</p>
             </div>
         </div>
 
-        <!-- Pedidos Listos para Cobrar -->
-        <div class="p-6">
-            <h2 class="text-xl font-bold text-green-700 mb-4 flex items-center gap-2">
-                💵 Listos para Cobrar
-                <span class="bg-green-500 text-white px-2 py-0.5 rounded-full text-sm">{{ readyWebOrders.length }}</span>
+        <!-- 2. Pedidos Web Listos -->
+        <div v-if="readyWebOrders.length > 0" class="p-6">
+            <h2 class="text-xl font-bold text-blue-700 mb-4 flex items-center gap-2">
+                Pedidos Web Listos
+                <span class="bg-blue-500 text-white px-2 py-0.5 rounded-full text-sm">{{ readyWebOrders.length }}</span>
             </h2>
             <div class="grid gap-3">
-                <div v-for="order in readyWebOrders" :key="order.id" class="bg-white p-5 rounded-2xl shadow-sm border border-green-200 flex justify-between items-center">
-                    <div>
-                        <h3 class="font-bold text-lg text-slate-800">#{{ order.id }} · {{ order.customer_name }}</h3>
-                        <p class="text-green-600 font-bold">${{ Number(order.total_amount).toFixed(2) }}</p>
-                        <p class="text-sm text-slate-400 capitalize">{{ order.order_type }}</p>
+                <div v-for="order in readyWebOrders" :key="order.id" 
+                    :class="[
+                        'bg-white rounded-3xl shadow-sm border p-5 flex flex-col md:flex-row justify-between items-center gap-4 transition-all',
+                        order.order_type === 'DELIVERY' ? 'border-purple-200' : 
+                        order.order_type === 'PICKUP' ? 'border-blue-200' : 
+                        'border-green-200'
+                    ]"
+                >
+                    <div class="flex items-center gap-4 w-full md:w-auto">
+                        <div :class="[
+                            'w-12 h-12 rounded-xl flex items-center justify-center font-black shadow-sm',
+                            order.order_type === 'DELIVERY' ? 'bg-purple-100 text-purple-600' : 
+                            order.order_type === 'PICKUP' ? 'bg-blue-100 text-blue-600' : 
+                            'bg-green-100 text-green-600'
+                        ]">
+                            #{{ order.id }}
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-black text-lg text-slate-800">{{ order.customer_name }}</h3>
+                                <span v-if="order.order_type === 'DINE_IN'" class="text-xs font-black text-green-600">{{ (order.table_number || order.table_name || '?').toString().toLowerCase().startsWith('mesa') ? (order.table_number || order.table_name) : `Mesa ${order.table_number || order.table_name || '?'}` }}</span>
+                                <span v-else-if="order.order_type === 'TAKEAWAY'" class="text-xs font-black text-green-600">Para Llevar</span>
+                                <span v-else-if="order.order_type === 'DELIVERY'" class="text-xs font-black text-purple-600">A Domicilio</span>
+                                <span v-else class="text-xs font-black text-blue-600">Para Recoger {{ order.scheduled_at ? `(${formatTime(order.scheduled_at)})` : '' }}</span>
+                            </div>
+                            <p class="text-slate-500 font-bold text-sm">Total a cobrar: <span class="text-slate-800 font-black text-lg ml-1">${{ Number(order.total_amount).toFixed(2) }}</span></p>
+                        </div>
                     </div>
-                    <div class="flex gap-2">
-                        <button @click="chargeWebOrder(order, 'CASH')" class="bg-green-500 text-white font-bold py-3 px-5 rounded-xl hover:bg-green-600 shadow-md text-sm">💵 Efectivo</button>
-                        <button @click="chargeWebOrder(order, 'CARD')" class="bg-blue-500 text-white font-bold py-3 px-5 rounded-xl hover:bg-blue-600 shadow-md text-sm">💳 Tarjeta</button>
-                        <button @click="chargeWebOrder(order, 'TRANSFER')" class="bg-slate-600 text-white font-bold py-3 px-5 rounded-xl hover:bg-slate-700 shadow-md text-sm">📲 Transfer</button>
+                    <div class="flex flex-wrap gap-2 w-full md:w-auto justify-end">
+                        <button @click="chargeWebOrder(order, 'CASH')" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-green-500 text-white font-black py-2.5 px-5 rounded-xl hover:bg-green-600 shadow-lg shadow-green-100 transition-all text-xs group">
+                            <span class="group-hover:scale-110 transition-transform">💵</span> Efectivo
+                        </button>
+                        <button @click="chargeWebOrder(order, 'CARD')" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-500 text-white font-black py-2.5 px-5 rounded-xl hover:bg-blue-600 shadow-lg shadow-blue-100 transition-all text-xs group">
+                            <span class="group-hover:scale-110 transition-transform">💳</span> Tarjeta
+                        </button>
+                        <button @click="chargeWebOrder(order, 'TRANSFER')" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-700 text-white font-black py-2.5 px-5 rounded-xl hover:bg-slate-800 shadow-lg shadow-slate-200 transition-all text-xs group">
+                            <span class="group-hover:scale-110 transition-transform">📲</span> Transfer
+                        </button>
                     </div>
                 </div>
-                <p v-if="readyWebOrders.length === 0" class="text-center text-gray-400 py-6">No hay pedidos listos para cobrar</p>
             </div>
         </div>
     </div>
 
+    <!-- MAIN AREA: PEDIDOS LOCALES -->
+    <div v-if="activeView === 'ORDERS_LOCAL'" class="flex-1 flex flex-col h-full bg-slate-50 overflow-y-auto">
+        <!-- 1. Pedidos Locales en Preparación -->
+        <div class="p-6 border-b border-slate-200">
+            <h2 class="text-xl font-bold text-slate-700 mb-6 flex items-center gap-2">
+                En preparación
+                <span v-if="preparingLocalOrders.length > 0" class="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-sm">{{ preparingLocalOrders.length }}</span>
+            </h2>
+            <div class="grid gap-6">
+                <div v-for="order in preparingLocalOrders" :key="order.id" 
+                    :class="[
+                        'bg-white rounded-3xl shadow-sm border-l-[6px] transition-all relative overflow-hidden',
+                        order.order_type === 'DINE_IN' ? 'border-green-500 bg-green-50/10' : 'border-blue-500 bg-blue-50/10'
+                    ]"
+                >
+                    <div class="p-5">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-4">
+                                <div class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-800 flex items-center justify-center font-black text-xl shadow-inner">
+                                    #{{ order.id }}
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="font-black text-xl text-slate-800">{{ order.customer_name }}</h3>
+                                        <span class="bg-green-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">
+                                            {{ order.order_type === 'DINE_IN' ? ( (order.table_number || order.table_name || '?').toString().toLowerCase().startsWith('mesa') ? (order.table_number || order.table_name) : `Mesa ${order.table_number || order.table_name || '?'}`) : 'Llevar' }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-4 mt-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        {{ translateStatus(order.status) }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div :class="['px-4 py-2 rounded-2xl text-sm font-black flex items-center gap-2 shadow-sm border border-white/50', getTimerColor(order.created_at)]">
+                                <Clock class="w-4 h-4" /> {{ formatElapsed(order.created_at) }}
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                            <div class="bg-slate-50/50 px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 flex justify-between">
+                                <span>Detalle del Pedido</span>
+                                <span>Cant.</span>
+                            </div>
+                            <div class="divide-y divide-slate-50 overflow-y-auto max-h-48 no-scrollbar">
+                                <div v-for="item in order.items" :key="item.id" class="px-4 py-3 flex justify-between items-start hover:bg-slate-50/50 transition-colors">
+                                    <div>
+                                        <span class="font-bold text-slate-700">{{ item.product_name }}</span>
+                                        <div v-if="item.modifiers" class="text-[11px] text-slate-400 font-medium leading-tight mt-0.5 italic">
+                                            {{ item.modifiers }}
+                                        </div>
+                                    </div>
+                                    <div class="bg-slate-100 text-slate-600 px-2 py-1 rounded-lg font-black text-xs">
+                                        {{ item.quantity }}x
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p v-if="preparingLocalOrders.length === 0" class="text-center text-gray-400 py-12">No hay pedidos en preparación</p>
+            </div>
+        </div>
+
+        <!-- 2. Pedidos Locales Listos para Cobrar -->
+        <div class="p-6 bg-green-50/30 min-h-[300px]">
+            <h2 class="text-xl font-bold text-green-700 mb-6 flex items-center gap-2">
+                Listos para cobrar
+                <span v-if="readyLocalOrders.length > 0" class="bg-green-500 text-white px-2 py-0.5 rounded-full text-sm">{{ readyLocalOrders.length }}</span>
+            </h2>
+            <div class="grid gap-6">
+                <div v-for="order in readyLocalOrders" :key="order.id" 
+                    :class="[
+                        'bg-white rounded-3xl shadow-md border-l-[6px] transition-all relative overflow-hidden ring-1 ring-green-100',
+                        order.order_type === 'DINE_IN' ? 'border-green-500' : 'border-blue-500'
+                    ]"
+                >
+                    <div class="p-5">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-4">
+                                <div class="w-14 h-14 rounded-2xl bg-green-100 text-green-700 flex items-center justify-center font-black text-xl shadow-inner border border-green-200">
+                                    #{{ order.id }}
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="font-black text-xl text-slate-800">{{ order.customer_name }}</h3>
+                                        <span class="bg-green-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">
+                                            {{ order.order_type === 'DINE_IN' ? ( (order.table_number || order.table_name || '?').toString().toLowerCase().startsWith('mesa') ? (order.table_number || order.table_name) : `Mesa ${order.table_number || order.table_name || '?'}`) : 'Llevar' }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-4 mt-1 text-[10px] font-black text-green-600 uppercase tracking-widest">
+                                        {{ translateStatus(order.status) }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-2xl border border-slate-100 overflow-hidden mb-4">
+                            <div class="bg-slate-50/50 px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 flex justify-between">
+                                <span>Detalle del Pedido</span>
+                                <span>Cant.</span>
+                            </div>
+                            <div class="divide-y divide-slate-50 overflow-y-auto max-h-48 no-scrollbar">
+                                <div v-for="item in order.items" :key="item.id" class="px-4 py-3 flex justify-between items-start hover:bg-slate-50/50 transition-colors">
+                                    <div>
+                                        <span class="font-bold text-slate-700">{{ item.product_name }}</span>
+                                        <div v-if="item.modifiers" class="text-[11px] text-slate-400 font-medium leading-tight mt-0.5 italic">
+                                            {{ item.modifiers }}
+                                        </div>
+                                    </div>
+                                    <div class="bg-slate-100 text-slate-600 px-2 py-1 rounded-lg font-black text-xs">
+                                        {{ item.quantity }}x
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-4 bg-green-50/50 -mx-5 -mb-5 p-5 border-t border-green-100">
+                            <div class="flex justify-between items-center">
+                                <span class="text-[10px] font-black text-green-700 uppercase block leading-none mb-1">Total a Cobrar</span>
+                                <span class="text-2xl font-black text-slate-800">${{ Number(order.total_amount).toFixed(2) }}</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button @click="processCharge(order, 'CASH')" class="flex items-center justify-center gap-2 bg-green-500 text-white font-black py-2.5 rounded-xl hover:bg-green-600 shadow-lg shadow-green-100 transition-all text-[10px] group">
+                                    <span class="text-sm group-hover:scale-110 transition-transform">💵</span> Efectivo
+                                </button>
+                                <button @click="processCharge(order, 'CARD')" class="flex items-center justify-center gap-2 bg-blue-500 text-white font-black py-2.5 rounded-xl hover:bg-blue-600 shadow-lg shadow-blue-100 transition-all text-[10px] group">
+                                    <span class="text-sm group-hover:scale-110 transition-transform">💳</span> Tarjeta
+                                </button>
+                                <button @click="processCharge(order, 'TRANSFER')" class="flex items-center justify-center gap-2 bg-slate-700 text-white font-black py-2.5 rounded-xl hover:bg-slate-800 shadow-lg shadow-slate-200 transition-all text-[10px] group">
+                                    <span class="text-sm group-hover:scale-110 transition-transform">📲</span> Transfer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p v-if="readyLocalOrders.length === 0" class="text-center text-gray-400 py-12">No hay pedidos listos para cobrar</p>
+            </div>
+        </div>
+    </div>
 
     <!-- TICKET PANEL LATERAL -->
     <div class="w-96 bg-white border-l border-gray-200 shadow-xl flex flex-col z-20">
       
       <div class="p-6 border-b border-slate-100 bg-slate-50/50">
-        <div class="flex bg-slate-200 rounded-lg p-1 relative">
-          <div class="absolute inset-y-1 w-1/2 bg-white rounded-md shadow-sm transition-transform duration-300 ease-out" :class="cartType === 'DINE_IN' ? 'translate-x-0' : 'translate-x-full'"></div>
-          <button @click="cartType = 'DINE_IN'" class="flex-1 py-2 text-sm font-bold text-slate-800 relative z-10">Para Mesa</button>
-          <button @click="cartType = 'TAKEAWAY'" class="flex-1 py-2 text-sm font-bold text-slate-800 relative z-10">Para Llevar</button>
+        <div class="flex bg-slate-200 rounded-lg p-1 relative overflow-hidden">
+          <div 
+            class="absolute inset-y-1 bg-white rounded-md shadow-sm transition-all duration-300 ease-out" 
+            :style="{ 
+                left: cartType === 'DINE_IN' ? '4px' : 'calc(50% + 2px)', 
+                width: 'calc(50% - 6px)' 
+            }"
+          ></div>
+          <button @click="cartType = 'DINE_IN'" class="flex-1 py-2 text-sm font-bold text-slate-800 relative z-10 whitespace-nowrap">Para Mesa</button>
+          <button @click="cartType = 'TAKEAWAY'" class="flex-1 py-2 text-sm font-bold text-slate-800 relative z-10 whitespace-nowrap">Para Llevar</button>
         </div>
         
         <div v-if="cartType === 'DINE_IN'" class="mt-4">
             <label class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Asignar Mesa</label>
-            <select v-model="selectedTableId" class="w-full bg-white border border-slate-200 rounded-lg p-3 text-slate-700 font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none">
-                <option :value="null">-- Seleccionar Mesa --</option>
-                <option v-for="table in tables" :key="table.id" :value="table.id">
-                    {{ table.name }} (Capacidad: {{ table.capacity }}) 
-                    {{ table.status !== 'AVAILABLE' ? '🔴 Ocupada' : '🟢 Libre' }}
-                </option>
-            </select>
+            <button 
+                @click="openTableModal"
+                :class="[
+                    'w-full py-3 px-4 rounded-xl border-2 border-dashed font-bold flex items-center justify-between transition-colors',
+                    selectedTableId 
+                        ? 'border-green-500 bg-green-50 text-green-700' 
+                        : 'border-slate-300 bg-slate-50 text-slate-500 hover:bg-slate-100'
+                ]"
+            >
+                <span class="flex items-center gap-2">
+                    <Utensils class="w-5 h-5" />
+                    {{ selectedTableId ? tables.find(t => t.id === selectedTableId)?.name || 'Mesa Seleccionada' : 'Seleccionar Mesa' }}
+                </span>
+                <span class="text-xs bg-white shadow-sm px-2 py-1 rounded-lg border" v-if="!selectedTableId">Elegir</span>
+            </button>
         </div>
          <div v-if="cartType === 'TAKEAWAY'" class="mt-4">
             <label class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Nombre del Cliente</label>
@@ -179,8 +518,20 @@
                 <div class="flex justify-between items-start mb-2">
                     <div class="flex-1 pr-4">
                         <h4 class="font-bold text-slate-800 text-sm">{{ item.quantity }}x {{ item.name }}</h4>
+                        <!-- Modificadores -->
+                        <div v-if="item.modifiers?.length" class="text-[10px] text-slate-500 mt-0.5 italic leading-tight">
+                            {{ item.modifiers.map(m => m.name).join(', ') }}
+                        </div>
+                        <!-- Instrucciones -->
+                        <div v-if="item.special_instructions" class="text-[10px] text-orange-600 mt-1 font-bold flex items-center gap-1">
+                            <span class="text-xs">📝</span> {{ item.special_instructions }}
+                        </div>
                     </div>
-                    <span class="font-bold text-slate-800 whitespace-nowrap">${{ (item.price * item.quantity).toFixed(2) }}</span>
+                    <div class="text-right">
+                        <span class="font-bold text-slate-800 whitespace-nowrap">${{ (
+                            (parseFloat(item.price) + (item.modifiers || []).reduce((acc, m) => acc + parseFloat(m.price_adjustment || 0), 0)) * item.quantity
+                        ).toFixed(2) }}</span>
+                    </div>
                 </div>
                 <div class="flex items-center gap-3">
                     <button @click="updateQuantity(index, -1)" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200 font-bold">-</button>
@@ -192,27 +543,76 @@
         </ul>
       </div>
 
-      <!-- Totales y Pagar -->
+      <!-- Totales y Realizar Pedido -->
       <div class="p-6 bg-slate-800 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.3)] z-30">
         <div class="flex justify-between items-center mb-6">
-           <span class="text-slate-300 font-medium text-lg">Total a cobrar</span>
+           <span class="text-slate-300 font-medium text-lg">Total Pedido</span>
            <span class="text-white font-black text-4xl">${{ cartTotal.toFixed(2) }}</span>
         </div>
         
-        <div class="grid grid-cols-2 gap-3 mb-3">
-          <button @click="processPayment('CASH')" :disabled="!canCheckout" :class="['font-bold py-4 rounded-xl shadow-lg transition-transform flex flex-col items-center justify-center', canCheckout ? 'bg-green-500 hover:bg-green-600 text-white transform hover:-translate-y-1' : 'bg-slate-700 text-slate-500 cursor-not-allowed']">
-            <span class="text-xl mb-1">💵</span>
-            Efectivo
-          </button>
-          <button @click="processPayment('CARD')" :disabled="!canCheckout" :class="['font-bold py-4 rounded-xl shadow-lg transition-transform flex flex-col items-center justify-center', canCheckout ? 'bg-blue-500 hover:bg-blue-600 text-white transform hover:-translate-y-1' : 'bg-slate-700 text-slate-500 cursor-not-allowed']">
-            <span class="text-xl mb-1">💳</span>
-            Tarjeta
-          </button>
-        </div>
-        <button @click="processPayment('TRANSFER')" :disabled="!canCheckout" :class="['w-full font-bold py-3 rounded-xl transition-colors', canCheckout ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50']">
-            📲 Transferencia
+        <button 
+            @click="placePOSOrder" 
+            :disabled="!canCheckout" 
+            :class="['w-full font-black py-5 rounded-2xl shadow-xl transition-all flex flex-col items-center justify-center gap-1', canCheckout ? 'bg-orange-500 hover:bg-orange-600 text-white transform hover:-translate-y-1 active:scale-95' : 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50']"
+        >
+            Realizar Pedido
         </button>
       </div>
+    </div>
+
+    <!-- Componente Modal de Producto -->
+    <ProductModal 
+        :is-open="isProductModalOpen"
+        :product="selectedProduct"
+        :show-image="false"
+        :show-description="false"
+        @close="isProductModalOpen = false"
+        @add-to-cart="handleModalAddToCart"
+    />
+
+    <!-- Componente Modal de Mapa de Mesas -->
+    <div v-if="isTableModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 pb-20 sm:pb-6">
+        <div @click="isTableModalOpen = false" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"></div>
+        <div class="bg-slate-50 w-full max-w-4xl max-h-full rounded-3xl shadow-2xl overflow-hidden relative flex flex-col transform transition-all">
+            <div class="bg-white px-6 py-4 border-b border-slate-200 flex justify-between items-center relative z-10 shrink-0">
+                <div>
+                    <h2 class="text-xl font-black text-slate-800">Mapa de Mesas</h2>
+                    <p class="text-sm text-slate-500 font-medium">Selecciona una mesa disponible (Verde)</p>
+                </div>
+                <button @click="isTableModalOpen = false" class="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                    <XCircle class="w-6 h-6 text-slate-400" />
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto flex-1">
+                <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
+                    <button 
+                        v-for="table in tables" 
+                        :key="table.id"
+                        :disabled="table.status !== 'AVAILABLE'"
+                        @click="selectGridTable(table.id)"
+                        :class="[
+                            'aspect-square p-2 rounded-2xl font-black text-lg border-2 transition-all flex flex-col items-center justify-center gap-1 shadow-sm relative overflow-hidden group',
+                            table.status !== 'AVAILABLE' 
+                                ? 'bg-red-50/50 border-red-200 text-red-500 cursor-not-allowed opacity-75' 
+                                : selectedTableId === table.id 
+                                    ? 'bg-green-500 border-green-600 text-white shadow-inner scale-95' 
+                                    : 'bg-white border-green-200 text-green-700 hover:bg-green-50 hover:border-green-400 hover:scale-[1.02]'
+                        ]"
+                    >
+                        <div v-if="table.status !== 'AVAILABLE'" class="absolute inset-0 flex items-center justify-center bg-red-100/50 backdrop-blur-[1px]">
+                            <span class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black rotate-[-15deg]">Ocupada</span>
+                        </div>
+                        <Utensils class="w-6 h-6 mb-1 opacity-50" />
+                        <div class="flex flex-col items-center">
+                            <span>{{ table.name.replace(/mesa /i, '') }}</span>
+                            <span v-if="table.table_number" class="text-xs font-bold opacity-50 mt-0.5">#{{ table.table_number }}</span>
+                        </div>
+                        <span class="text-[10px] font-bold opacity-60 uppercase tracking-widest mt-1">{{ table.capacity }} Pax</span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
   </div>
 </template>
@@ -221,12 +621,21 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import axios from 'axios'
+import { 
+  Truck, ShoppingBag, Utensils, Phone, MapPin, Clock, 
+  ArrowRight, XCircle, CheckCircle2, User, Hash, Plus, Minus
+} from 'lucide-vue-next'
+import ProductModal from '../../components/ProductModal.vue'
+import { useToast } from '../../composables/useToast'
+import { useDialogStore } from '../../stores/dialog'
 
+const toast = useToast()
+const dialog = useDialogStore()
 const auth = useAuthStore()
 const companyId = auth.user?.company_id || 1
 
 // Estado de la Vista
-const activeView = ref('MENU')
+const activeView = ref('MENU') // MENU, TABLES, ORDERS_WEB, ORDERS_LOCAL, SHIFT
 const loading = ref(true)
 const error = ref(null)
 const now = ref(Date.now())
@@ -250,11 +659,32 @@ const lastReadyCount = ref(0)
 const searchQuery = ref('')
 const selectedCategory = ref(null)
 
-// El Ticket (Cart) Local del POS
 const cart = ref([])
 const cartType = ref('TAKEAWAY')
 const selectedTableId = ref(null)
 const customerName = ref('')
+
+// Mapa de Mesas Modal
+const isTableModalOpen = ref(false)
+
+const openTableModal = async () => {
+    try {
+        const resTables = await axios.get(`/api.php/tables?company_id=${companyId}`)
+        tables.value = resTables.data
+    } catch (e) {
+        console.error("Error fetching tables", e)
+    }
+    isTableModalOpen.value = true
+}
+
+const selectGridTable = (id) => {
+    selectedTableId.value = id
+    isTableModalOpen.value = false
+}
+
+// Modal de Personalización
+const isProductModalOpen = ref(false)
+const selectedProduct = ref(null)
 
 // Polling and timers
 let pollInterval = null
@@ -289,9 +719,27 @@ const playSound = (type = 'new') => {
 const formatElapsed = (dateStr) => {
     if (!dateStr) return '00:00'
     const totalSec = Math.max(0, Math.floor((now.value - new Date(dateStr).getTime()) / 1000))
-    const m = Math.floor(totalSec / 60)
+    const h = Math.floor(totalSec / 3600)
+    const m = Math.floor((totalSec % 3600) / 60)
     const s = totalSec % 60
+    
+    if (h > 0) {
+        return `${h}h ${String(m).padStart(2, '0')}m`
+    }
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
+const formatTime = (dateStr) => {
+    if (!dateStr || dateStr.includes('0000-00-00')) return ''
+    try {
+        const timePart = dateStr.includes(' ') ? dateStr.split(' ')[1] : dateStr
+        let [h, m] = timePart.split(':')
+        h = parseInt(h)
+        const ampm = h >= 12 ? 'PM' : 'AM'
+        h = h % 12
+        h = h ? h : 12
+        return `${h}:${m} ${ampm}`
+    } catch (e) { return dateStr }
 }
 
 const getTimerColor = (dateStr) => {
@@ -313,7 +761,17 @@ const filteredProducts = computed(() => {
     return result
 })
 
-const cartTotal = computed(() => cart.value.reduce((total, item) => total + (item.price * item.quantity), 0))
+const cartTotal = computed(() => {
+    return cart.value.reduce((total, item) => {
+        let itemPrice = parseFloat(item.price)
+        if (item.modifiers && Array.isArray(item.modifiers)) {
+            item.modifiers.forEach(m => {
+                itemPrice += parseFloat(m.price_adjustment || 0)
+            })
+        }
+        return total + (itemPrice * item.quantity)
+    }, 0)
+})
 
 const canCheckout = computed(() => {
     if (cart.value.length === 0) return false
@@ -322,8 +780,43 @@ const canCheckout = computed(() => {
     return true
 })
 
-const pendingWebOrders = computed(() => webOrders.value.filter(o => o.status === 'PENDING'))
-const readyWebOrders = computed(() => webOrders.value.filter(o => o.status === 'READY'))
+const translateStatus = (status) => {
+    const translations = {
+        'PENDING': 'Pendiente',
+        'ACCEPTED': 'En preparación',
+        'PREPARING': 'En preparación',
+        'READY': 'Listo',
+        'COMPLETED': 'Completado',
+        'CANCELLED': 'Cancelado',
+        'REJECTED': 'Rechazado'
+    }
+    return translations[status] || status
+}
+
+
+const pendingWebOrders = computed(() => webOrders.value.filter(o => 
+    o.status === 'PENDING' && (o.order_type === 'PICKUP' || o.order_type === 'DELIVERY')
+))
+
+const preparingWebOrders = computed(() => webOrders.value.filter(o => 
+    (o.order_type === 'PICKUP' || o.order_type === 'DELIVERY') && 
+    ['ACCEPTED', 'PREPARING'].includes(o.status)
+))
+
+const readyWebOrders = computed(() => webOrders.value.filter(o => 
+    (o.order_type === 'PICKUP' || o.order_type === 'DELIVERY') && 
+    o.status === 'READY'
+))
+
+const preparingLocalOrders = computed(() => webOrders.value.filter(o => 
+    (o.order_type === 'DINE_IN' || o.order_type === 'TAKEAWAY') && 
+    ['PENDING', 'ACCEPTED', 'PREPARING'].includes(o.status)
+))
+
+const readyLocalOrders = computed(() => webOrders.value.filter(o => 
+    (o.order_type === 'DINE_IN' || o.order_type === 'TAKEAWAY') && 
+    o.status === 'READY'
+))
 
 // --- METHODS ---
 const loadInitialData = async () => {
@@ -367,10 +860,10 @@ const refreshOrders = async () => {
         if (Array.isArray(res.data)) {
             // Check for new PENDING orders
             const newPending = res.data.filter(o => o.status === 'PENDING').length
-            if (newPending > lastPendingCount.value && lastPendingCount.value >= 0) {
+            if (newPending > lastPendingCount.value && lastPendingCount.value > 0) {
                 playSound('new')
-                // Auto-switch to WEB tab when new order arrives
-                if (activeView.value === 'MENU') activeView.value = 'WEB'
+                // Auto-switch to WEB tab when new order arrives (only if not initial load)
+                if (activeView.value === 'MENU') activeView.value = 'ORDERS_WEB'
             }
             lastPendingCount.value = newPending
 
@@ -387,9 +880,35 @@ const refreshOrders = async () => {
 }
 
 const addToCart = (product) => {
-    const existing = cart.value.find(i => i.id === product.id)
-    if (existing) { existing.quantity++ }
-    else { cart.value.push({ ...product, quantity: 1 }) }
+    selectedProduct.value = product
+    isProductModalOpen.value = true
+}
+
+const handleModalAddToCart = (data) => {
+    const { product, quantity, modifiers, special_instructions } = data
+    
+    // Buscar si existe exactamente el mismo producto con exactamente los mismos modificadores e instrucciones
+    const existingIndex = cart.value.findIndex(item => {
+        if (item.id !== product.id) return false
+        if (item.special_instructions !== special_instructions) return false
+        
+        const itemMods = (item.modifiers || []).map(m => m.id).sort().join(',')
+        const newMods = (modifiers || []).map(m => m.id).sort().join(',')
+        return itemMods === newMods
+    })
+
+    if (existingIndex !== -1) {
+        cart.value[existingIndex].quantity += quantity
+    } else {
+        cart.value.push({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            quantity: quantity,
+            modifiers: modifiers,
+            special_instructions: special_instructions
+        })
+    }
 }
 
 const updateQuantity = (index, delta) => {
@@ -403,24 +922,37 @@ const acceptOrder = async (orderId) => {
     try {
         await axios.put(`/api.php/orders/${orderId}`, { status: 'ACCEPTED' })
         await refreshOrders()
-    } catch (e) { alert("Error al aceptar pedido") }
+    } catch (e) { toast.error("Error al aceptar pedido") }
 }
 
 const rejectOrder = async (orderId) => {
-    if (!confirm('¿Rechazar este pedido?')) return
+    const confirmed = await dialog.confirm({
+        title: '¿Rechazar Pedido?',
+        message: 'Esta acción no se puede deshacer y el cliente será notificado.',
+        confirmText: 'Sí, Rechazar',
+        cancelText: 'No, Volver'
+    })
+    if (!confirmed) return
+    
     try {
         await axios.put(`/api.php/orders/${orderId}`, { status: 'REJECTED' })
         await refreshOrders()
-    } catch (e) { alert("Error al rechazar pedido") }
+    } catch (e) { toast.error("Error al aceptar pedido") }
 }
 
 // Cobrar pedido web listo
 const chargeWebOrder = async (order, method) => {
     if (method === 'CASH' && !activeShiftId.value) {
-        alert("¡Abre la caja primero para cobrar en efectivo!")
+        toast.error("¡Abre la caja primero para cobrar en efectivo!")
         return
     }
-    if (!confirm(`¿Cobrar pedido #${order.id} por $${Number(order.total_amount).toFixed(2)} con ${method}?`)) return
+    const confirmed = await dialog.confirm({
+        title: 'Confirmar Cobro',
+        message: `¿Cobrar pedido #${order.id} por $${Number(order.total_amount).toFixed(2)} con ${method === 'CASH' ? 'Efectivo' : 'Tarjeta'}?`,
+        confirmText: 'Cobrar Ahora',
+        cancelText: 'Cancelar'
+    })
+    if (!confirmed) return
     
     try {
         await axios.put(`/api.php/orders/${order.id}`, {
@@ -428,33 +960,29 @@ const chargeWebOrder = async (order, method) => {
             payment_method: method,
             cash_register_shift_id: method === 'CASH' ? activeShiftId.value : null
         })
-        alert(`✅ Pedido #${order.id} cobrado ($${Number(order.total_amount).toFixed(2)} - ${method})`)
+        toast.success(`Pedido #${order.id} cobrado ($${Number(order.total_amount).toFixed(2)} - ${method})`)
         await refreshOrders()
-    } catch (e) { alert("Error al cobrar pedido") }
+    } catch (e) { toast.error("Error al cobrar pedido") }
 }
 
-// Procesar pago del ticket local del POS
-const processPayment = async (method) => {
+// Enviar pedido POS directamente a cocina
+const placePOSOrder = async () => {
     if (!canCheckout.value) return
-
-    if (method === 'CASH' && !activeShiftId.value) {
-        alert("¡No puedes cobrar en Efectivo sin turno de caja abierto! Ve a Control de Caja.")
-        return
-    }
 
     const orderPayload = {
         company_id: companyId,
-        customer_name: cartType.value === 'DINE_IN' ? `Mesa ${tables.value.find(t => t.id === selectedTableId.value)?.name}` : customerName.value,
+        customer_name: cartType.value === 'DINE_IN' ? tables.value.find(t => t.id === selectedTableId.value)?.name : customerName.value,
         order_type: cartType.value,
         table_id: selectedTableId.value,
-        payment_method: method,
-        cash_register_shift_id: method === 'CASH' ? activeShiftId.value : null,
         total_amount: cartTotal.value,
+        status: 'ACCEPTED',
+        payment_method: 'PENDING',
         items: cart.value.map(i => ({
             product_id: i.id,
             quantity: i.quantity,
             price: i.price,
-            modifiers: [] 
+            modifiers: (i.modifiers || []).map(m => m.id),
+            special_instructions: i.special_instructions || ''
         }))
     }
 
@@ -465,17 +993,44 @@ const processPayment = async (method) => {
              await axios.put(`/api.php/tables/${selectedTableId.value}/status`, { status: 'OCCUPIED' })
         }
 
-        alert(`✅ Cobro de $${cartTotal.value.toFixed(2)} registrado (${method}).`)
+        toast.success(`Encargo enviado a cocina 🔥`)
         
         cart.value = []
         customerName.value = ''
         selectedTableId.value = null
         loadInitialData()
+        refreshOrders()
+        activeView.value = 'ORDERS_LOCAL'
 
     } catch (err) {
-        alert("Error al procesar pago: " + (err.response?.data?.message || err.message))
+        toast.error("Error al enviar pedido: " + (err.response?.data?.message || err.message))
     }
 }
+
+// Abrir diálogo de cobro para una orden local activa
+const showChargeOrder = async (order) => {
+    const confirmed = await dialog.confirm({
+        title: 'Seleccionar Método de Pago',
+        message: `¿Cómo desea pagar el cliente la orden #${order.id} por $${Number(order.total_amount).toFixed(2)}?`,
+        confirmText: 'Efectivo 💵',
+        cancelText: 'Cancelar'
+    })
+
+    if (confirmed) {
+        await processCharge(order, 'CASH')
+    } else {
+        // En un sistema real aquí abriríamos un sub-modal con Tarjeta/Transfer.
+        // Por simplicidad, usemos otro diálogo si cancela o una UI dedicada.
+        // Vamos a implementar una lógica de "Tarjeta" si el usuario elige una opción secundaria en el futuro,
+        // pero por ahora usemos el flujo de chargeWebOrder que ya está pulido.
+    }
+}
+
+// Reutilizamos chargeWebOrder para órdenes locales al dar clic en botones
+const processCharge = async (order, method) => {
+    await chargeWebOrder(order, method)
+}
+
 
 onMounted(async () => {
     await loadInitialData()

@@ -65,7 +65,9 @@ if ($resource === 'auth') {
     if ($method === 'POST') {
         $controller->create();
     } elseif ($method === 'GET') {
-        if ($param) {
+        if ($param === 'customer') {
+            $controller->getByCustomer();
+        } elseif ($param) {
              $controller->getOne($param);
         } elseif (isset($_GET['company_id'])) {
             $controller->getByCompany($_GET['company_id']);
@@ -103,9 +105,15 @@ if ($resource === 'auth') {
         $controller->index();
     } elseif ($method === 'POST') {
         $controller->create();
-    } elseif ($method === 'PUT' && isset($uri[$key + 3]) && $uri[$key + 3] === 'status') {
-         $input = json_decode(file_get_contents('php://input'), true);
-         $controller->updateStatus($param, $input);
+    } elseif ($method === 'PUT' && $param) {
+        if (isset($uri[$key + 3]) && $uri[$key + 3] === 'status') {
+             $input = json_decode(file_get_contents('php://input'), true);
+             $controller->updateStatus($param, $input);
+        } else {
+             $controller->update($param);
+        }
+    } elseif ($method === 'DELETE' && $param) {
+        $controller->delete($param);
     }
 } elseif ($resource === 'chat') {
     $controller = new ChatController();

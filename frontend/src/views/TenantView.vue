@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 import { useCartStore } from '../stores/cart'
-import { ShoppingBag, ChevronLeft, User, X } from 'lucide-vue-next'
+import { ShoppingBag, ChevronLeft, User, X, LogIn, UserPlus } from 'lucide-vue-next'
 import ProductModal from '../components/ProductModal.vue'
 import CartDrawer from '../components/CartDrawer.vue'
 
@@ -24,10 +24,8 @@ const selectedProduct = ref(null)
 // Drawer State
 const isCartOpen = ref(false)
 
-// Guest Profile State
-const showWelcomeModal = ref(false)
-const guestName = ref(authStore.user.name || '')
-const guestPhone = ref(authStore.user.phone || '')
+// Auth Modal State
+const showAuthModal = ref(false)
 
 onMounted(async () => {
     // Sincronizar con sesión activa si existe
@@ -46,17 +44,12 @@ onMounted(async () => {
     }
 })
 
-const saveGuestProfile = () => {
-    authStore.setGuestProfile(guestName.value, guestPhone.value)
-    showWelcomeModal.value = false
-    
-    // Si tiene productos en el carrito, después de configurar el perfil lo llevamos al checkout
-    if (cartStore.cartCount > 0) {
-        router.push('/checkout')
-    }
-}
 
 const openProductModal = (product) => {
+    if (!authStore.isAuthenticated) {
+        showAuthModal.value = true
+        return
+    }
     selectedProduct.value = product
     isModalOpen.value = true
 }
@@ -77,8 +70,8 @@ const handleAddToCart = async ({ product, quantity, modifiers, special_instructi
 }
 
 const goToCheckout = () => {
-    if (!authStore.isConfigured) {
-        showWelcomeModal.value = true
+    if (!authStore.isAuthenticated) {
+        showAuthModal.value = true
     } else {
         router.push('/checkout')
     }
@@ -110,12 +103,16 @@ const goToCheckout = () => {
                 </div>
                 <div class="flex items-center gap-2">
                     <button 
-                        @click="showWelcomeModal = true"
+                        v-if="!authStore.isAuthenticated"
+                        @click="router.push('/login')"
                         class="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                        title="Mi Perfil"
+                        title="Iniciar Sesión"
                     >
                         <User class="w-6 h-6 text-gray-800" />
                     </button>
+                    <div v-else class="p-2 text-gray-800 font-bold text-sm bg-gray-50 rounded-full px-4">
+                        {{ authStore.user.name.split(' ')[0] }}
+                    </div>
                     <button 
                     @click="isCartOpen = true"
                     class="relative p-2 hover:bg-gray-100 rounded-full"
@@ -203,40 +200,41 @@ const goToCheckout = () => {
             @checkout="goToCheckout"
         />
 
-        <!-- Welcome / Guest Profile Modal -->
-        <div v-if="showWelcomeModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
-                <button v-if="authStore.isConfigured" @click="showWelcomeModal = false" class="absolute right-4 top-4 text-gray-400 hover:text-gray-600">
+        <!-- Auth Required Modal -->
+        <div v-if="showAuthModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm transition-all duration-300">
+            <div class="bg-white rounded-3xl max-w-sm w-full p-8 shadow-2xl relative animate-in fade-in zoom-in duration-300">
+                <button @click="showAuthModal = false" class="absolute right-6 top-6 text-gray-400 hover:text-gray-600 transition-colors">
                     <X class="w-6 h-6" />
                 </button>
-
-                <div class="text-center mb-6">
-                    <div class="w-16 h-16 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <User class="w-8 h-8" />
+                
+                <div class="text-center mb-8">
+                    <div class="w-20 h-20 bg-orange-100 text-orange-600 rounded-3xl flex items-center justify-center mx-auto mb-4 rotate-3 shadow-inner">
+                        <ShoppingBag class="w-10 h-10" />
                     </div>
-                    <h2 class="text-2xl font-bold text-gray-800" v-if="!authStore.isConfigured">¡Bienvenido!</h2>
-                    <h2 class="text-2xl font-bold text-gray-800" v-else>Tu Perfil</h2>
-                    <p class="text-sm text-gray-500 mt-1" v-if="!authStore.isConfigured">Para que pedir sea más rápido, ¿Cómo te llamas?</p>
+                    <h2 class="text-2xl font-black text-gray-900 leading-tight mb-2">¡Casi listo!</h2>
+                    <p class="text-sm text-gray-500">Para poder procesar tu pedido y brindarte un mejor servicio, necesitamos que inicies sesión o crees una cuenta.</p>
                 </div>
 
-                <form @submit.prevent="saveGuestProfile" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Tu Nombre</label>
-                        <input type="text" v-model="guestName" required class="w-full border border-gray-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-orange-500" placeholder="Ej. Juan Pérez">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono (WhatsApp)</label>
-                        <input type="tel" v-model="guestPhone" required class="w-full border border-gray-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-orange-500" placeholder="662 123 4567">
-                    </div>
-
-                    <button type="submit" class="w-full bg-orange-500 text-white font-bold py-3 mt-2 rounded-xl shadow-lg hover:bg-orange-600 transition-colors">
-                        {{ authStore.isConfigured ? 'Guardar Cambios' : 'Empezar a pedir' }}
+                <div class="space-y-3">
+                    <router-link 
+                        to="/login"
+                        class="w-full bg-orange-500 text-white font-black py-4 rounded-2xl shadow-lg shadow-orange-100 flex items-center justify-center gap-2 hover:bg-orange-600 transition-all hover:scale-[1.02] active:scale-95"
+                    >
+                        Iniciar Sesión
+                    </router-link>
+                    <router-link 
+                        to="/registro"
+                        class="w-full bg-slate-800 text-white font-black py-4 rounded-2xl shadow-lg shadow-slate-200 flex items-center justify-center gap-2 hover:bg-slate-900 transition-all hover:scale-[1.02] active:scale-95"
+                    >
+                        Crear una Cuenta
+                    </router-link>
+                    <button 
+                        @click="showAuthModal = false" 
+                        class="w-full py-2 text-sm text-slate-400 font-bold hover:text-slate-600 transition-colors uppercase tracking-widest mt-2"
+                    >
+                        Continuar explorando
                     </button>
-                    <!-- Skip only allowed if not configured yet (first time prompt) -->
-                    <button type="button" v-if="!authStore.isConfigured" @click="showWelcomeModal = false" class="w-full mt-3 text-sm text-gray-500 hover:underline">
-                        Omitir por ahora
-                    </button>
-                </form>
+                </div>
             </div>
         </div>
 

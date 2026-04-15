@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
-import { Search, MapPin, Clock } from 'lucide-vue-next'
+import { Search, MapPin, Clock, ShoppingBag, LogOut, LayoutDashboard } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 
@@ -58,13 +58,28 @@ onMounted(() => {
             <!-- Auth Button Absolute -->
             <div class="absolute top-6 right-6 z-20 flex items-center gap-3">
 
-                <div v-if="auth.isAuthenticated" class="flex items-center gap-3 ml-4">
-                    <router-link v-if="auth.user.role === 'OWNER'" to="/admin/dashboard" class="text-white hover:text-orange-200 font-bold bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm transition-colors">
-                        Panel
+                <div v-if="auth.isAuthenticated" class="flex items-center gap-2 p-1.5 bg-black/20 backdrop-blur-md rounded-2xl border border-white/10 shadow-lg">
+                    <!-- Mis Pedidos -->
+                    <router-link to="/mis-pedidos" class="flex items-center gap-2 text-white hover:bg-white/20 px-4 py-2 rounded-xl transition-all font-bold text-sm">
+                        <ShoppingBag class="w-4 h-4 text-orange-400" />
+                        <span class="hidden md:inline">Mis Pedidos</span>
                     </router-link>
-                    <div class="flex items-center gap-2 text-white bg-black/30 px-4 py-2 rounded-full backdrop-blur-sm">
-                        <span class="text-sm font-medium">{{ auth.user.name }}</span>
-                        <button @click="auth.logout" class="text-xs text-red-300 hover:text-red-100 ml-2 font-bold uppercase tracking-wider">Salir</button>
+
+                    <!-- Panel (solo si es Owner) -->
+                    <router-link v-if="auth.user.role === 'OWNER'" to="/admin/dashboard" class="flex items-center gap-2 text-white hover:bg-white/20 px-4 py-2 rounded-xl transition-all font-bold text-sm border-l border-white/10">
+                        <LayoutDashboard class="w-4 h-4 text-blue-400" />
+                        <span class="hidden md:inline">Panel</span>
+                    </router-link>
+
+                    <!-- Perfil y Salir -->
+                    <div class="flex items-center gap-3 pl-3 pr-2 border-l border-white/10 ml-1">
+                        <div class="flex flex-col items-end leading-none">
+                            <span class="text-[10px] font-black text-orange-200 uppercase tracking-widest mb-0.5">Hola,</span>
+                            <span class="text-sm font-bold text-white">{{ auth.user.name.split(' ')[0] }}</span>
+                        </div>
+                        <button @click="auth.logout" class="p-2 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-xl transition-all group" title="Cerrar Sesión">
+                            <LogOut class="w-4 h-4 transition-transform group-hover:scale-110" />
+                        </button>
                     </div>
                 </div>
                 <div v-else class="flex items-center gap-2">

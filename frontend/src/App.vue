@@ -24,5 +24,8 @@ onMounted(() => {
   <DialogProvider />
   
   <!-- Global Floating Customer Chat (solo visible si no estás en rutas admin, no es demo, y estás LOGUEADO) -->
-  <LiveChatBox v-if="!$route.path.includes('/admin') && !$route.path.includes('/demo') && $route.name !== 'tenant' && $route.name !== 'checkout' && auth.isAuthenticated" :isAdmin="false" />
+  <LiveChatBox 
+    v-if="!$route.path.includes('/admin') && !$route.path.includes('/demo') && !['tenant', 'checkout', 'pos', 'kitchen', 'caja', 'order-status', 'my-orders'].includes($route.name) && auth.isAuthenticated" 
+    :isAdmin="false" 
+  />
 </template>

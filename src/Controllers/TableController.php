@@ -30,6 +30,7 @@ class TableController {
         $company_id = $input['company_id'] ?? null;
         $name = $input['name'] ?? null;
         $capacity = $input['capacity'] ?? 4;
+        $table_number = $input['table_number'] ?? null;
 
         if (!$company_id || !$name) {
             http_response_code(400);
@@ -37,7 +38,7 @@ class TableController {
             return;
         }
 
-        $result = $this->model->createTable($company_id, $name, $capacity);
+        $result = $this->model->createTable($company_id, $name, $capacity, $table_number);
         
         if ($result['success']) {
             http_response_code(201);
@@ -45,6 +46,37 @@ class TableController {
         } else {
             http_response_code(500);
             echo json_encode(['message' => 'Error al crear mesa.']);
+        }
+    }
+
+    // PUT /api.php/tables/:id
+    public function update($id) {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $name = $input['name'] ?? null;
+        $capacity = $input['capacity'] ?? 4;
+        $table_number = $input['table_number'] ?? null;
+
+        if (!$name) {
+            http_response_code(400);
+            echo json_encode(['message' => 'El nombre de la mesa es obligatorio.']);
+            return;
+        }
+
+        if ($this->model->updateTable($id, $name, $capacity, $table_number)) {
+            echo json_encode(['message' => 'Mesa actualizada correctamente']);
+        } else {
+            http_response_code(500);
+            echo json_encode(['message' => 'Error al actualizar mesa.']);
+        }
+    }
+
+    // DELETE /api.php/tables/:id
+    public function delete($id) {
+        if ($this->model->delete($id)) {
+            echo json_encode(['message' => 'Mesa eliminada correctamente']);
+        } else {
+            http_response_code(500);
+            echo json_encode(['message' => 'Error al eliminar mesa.']);
         }
     }
 
