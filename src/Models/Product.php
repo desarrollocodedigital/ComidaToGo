@@ -27,8 +27,8 @@ class Product extends BaseModel {
     }
 
     public function createProduct($data) {
-        $sql = "INSERT INTO {$this->table} (category_id, name, description, price, image_url, is_available) 
-                VALUES (:cid, :keyname, :descr, :price, :img, :avail)";
+        $sql = "INSERT INTO {$this->table} (category_id, name, description, price, image_url, is_available, is_featured) 
+                VALUES (:cid, :keyname, :descr, :price, :img, :avail, :feat)";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             ':cid' => $data['category_id'],
@@ -36,7 +36,8 @@ class Product extends BaseModel {
             ':descr' => $data['description'] ?? '',
             ':price' => $data['price'],
             ':img' => $data['image_url'] ?? '',
-            ':avail' => isset($data['is_available']) ? $data['is_available'] : 1
+            ':avail' => isset($data['is_available']) ? $data['is_available'] : 1,
+            ':feat' => isset($data['is_featured']) ? $data['is_featured'] : 0
         ]);
         
         $productId = $this->db->lastInsertId();
@@ -58,7 +59,8 @@ class Product extends BaseModel {
                 description = :descr, 
                 price = :price, 
                 image_url = :img, 
-                is_available = :avail 
+                is_available = :avail,
+                is_featured = :feat 
                 WHERE id = :id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
@@ -68,6 +70,7 @@ class Product extends BaseModel {
             ':price' => $data['price'],
             ':img' => $data['image_url'] ?? '',
             ':avail' => isset($data['is_available']) ? $data['is_available'] : 1,
+            ':feat' => isset($data['is_featured']) ? $data['is_featured'] : 0,
             ':id' => $id
         ]);
 

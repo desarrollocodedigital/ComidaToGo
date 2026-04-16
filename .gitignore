@@ -11,3 +11,4 @@ vendor/
 # Ignorar archivos de logs y temporales
 .env
 Jornada.md
+scratch/

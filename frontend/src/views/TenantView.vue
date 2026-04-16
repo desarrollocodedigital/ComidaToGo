@@ -1,10 +1,10 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 import { useCartStore } from '../stores/cart'
-import { ShoppingBag, ChevronLeft, User, X, LogIn, UserPlus } from 'lucide-vue-next'
+import { ShoppingBag, ChevronLeft, User, X, LogIn, UserPlus, Star, Plus } from 'lucide-vue-next'
 import ProductModal from '../components/ProductModal.vue'
 import CartDrawer from '../components/CartDrawer.vue'
 
@@ -27,6 +27,19 @@ const isCartOpen = ref(false)
 // Auth Modal State
 const showAuthModal = ref(false)
 
+const featuredProducts = computed(() => {
+    if (!company.value || !company.value.menu) return []
+    const featured = []
+    company.value.menu.forEach(cat => {
+        cat.products.forEach(prod => {
+            if (Number(prod.is_featured)) {
+                featured.push(prod)
+            }
+        })
+    })
+    return featured
+})
+
 onMounted(async () => {
     // Sincronizar con sesión activa si existe
     if (authStore.isAuthenticated && !authStore.isConfigured) {
@@ -37,6 +50,20 @@ onMounted(async () => {
     try {
         const { data } = await axios.get(`/api.php/tenant/${route.params.slug}`)
         company.value = data
+
+        // Lógica de Deep Linking: Abrir platillo si viene prod_id en URL
+        const prodId = route.query.prod_id
+        if (prodId) {
+            let found = false
+            for (const cat of company.value.menu) {
+                const product = cat.products.find(p => p.id == prodId)
+                if (product) {
+                    openProductModal(product)
+                    found = true
+                    break
+                }
+            }
+        }
     } catch (e) {
         error.value = "No pudimos cargar el menú de este negocio."
     } finally {
@@ -90,7 +117,7 @@ const goToCheckout = () => {
 
     <div v-else class="bg-gray-50 min-h-screen pb-20">
         <!-- Header Sticky -->
-        <div class="sticky top-0 bg-white z-10 shadow-sm border-b border-gray-100">
+        <div class="sticky top-0 bg-white z-40 shadow-sm border-b border-gray-100">
             <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <router-link to="/" class="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -142,6 +169,43 @@ const goToCheckout = () => {
 
         <!-- Menu Content -->
         <main class="max-w-3xl mx-auto px-4 py-6">
+            <!-- Featured Products Section -->
+            <div v-if="featuredProducts.length > 0" class="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="p-1.5 bg-amber-100 text-amber-600 rounded-lg">
+                        <Star class="w-5 h-5 fill-current" />
+                    </div>
+                    <h2 class="text-xl font-black text-gray-900 tracking-tight">Nuestros Preferidos</h2>
+                </div>
+
+                <div class="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4">
+                    <div 
+                        v-for="product in featuredProducts" 
+                        :key="`feat-${product.id}`"
+                        @click="openProductModal(product)"
+                        class="min-w-[280px] bg-white rounded-3xl border border-amber-100 shadow-sm hover:shadow-xl transition-all p-4 cursor-pointer group relative overflow-hidden"
+                    >
+                        <div class="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-bl-[100px] -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+                        
+                        <div class="flex gap-4 relative z-10">
+                            <div v-if="product.image_url" class="w-20 h-20 rounded-2xl overflow-hidden shadow-md flex-shrink-0">
+                                <img :src="product.image_url" class="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500" />
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-black text-gray-900 mb-1 group-hover:text-amber-600 transition-colors line-clamp-1">{{ product.name }}</h3>
+                                <p class="text-[11px] text-gray-500 line-clamp-2 mb-2 leading-tight">{{ product.description }}</p>
+                                <div class="flex items-center justify-between mt-auto">
+                                    <span class="font-black text-amber-600">${{ parseFloat(product.price).toFixed(2) }}</span>
+                                    <div class="bg-amber-500 text-white p-1.5 rounded-xl shadow-lg shadow-amber-100 group-hover:bg-black transition-colors">
+                                        <Plus class="w-4 h-4" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div v-for="category in company.menu" :key="category.id" :id="`cat-${category.id}`" class="mb-8 scroll-mt-32">
                 <h2 class="text-xl font-bold text-gray-800 mb-4">{{ category.name }}</h2>
                 

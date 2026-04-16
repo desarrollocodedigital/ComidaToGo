@@ -27,15 +27,31 @@ class CompanyController {
     }
 
     public function update($id, $data) {
-        // Asumiendo que había un update aquí o agregar a ser necesario.
-        http_response_code(501);
-        echo json_encode(["message" => "Not implemented"]);
+        if (!$id || !$data) {
+            http_response_code(400);
+            echo json_encode(["message" => "Datos incompletos"]);
+            return;
+        }
+
+        $success = $this->model->update($id, $data);
+
+        if ($success) {
+            echo json_encode(["message" => "Configuración actualizada con éxito"]);
+        } else {
+            http_response_code(500);
+            echo json_encode(["message" => "Error al actualizar la configuración"]);
+        }
     }
 
     // GET /api/search?q=...
-    public function search($queryParams) {
-        $q = isset($queryParams['q']) ? $queryParams['q'] : '';
-        $results = $this->model->search($q);
+    public function search() {
+        $query = $_GET['q'] ?? '';
+        $type = $_GET['type'] ?? 'negocios';
+        $lat = isset($_GET['lat']) ? (float)$_GET['lat'] : null;
+        $lng = isset($_GET['lng']) ? (float)$_GET['lng'] : null;
+        $state = $_GET['state'] ?? null;
+        
+        $results = $this->model->search($query, $type, $lat, $lng, $state);
         echo json_encode($results);
     }
 }

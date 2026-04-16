@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '../../stores/auth'
-import { Plus, Edit, Trash2, Save, X, Image as ImageIcon, Upload, Loader2 } from 'lucide-vue-next'
+import { Plus, Edit, Trash2, Save, X, Image as ImageIcon, Upload, Loader2, Star } from 'lucide-vue-next'
 import { useToast } from '../../composables/useToast'
 
 const toast = useToast()
@@ -79,13 +79,25 @@ const openProductModal = (prod = null) => {
         modifier_group_ids: prod.modifier_group_ids || [] 
     } : { 
         name: '', description: '', price: 0, category_id: categories.value[0]?.id, 
-        image_url: '', is_available: 1, modifier_group_ids: []
+        image_url: '', is_available: 1, is_featured: 0, modifier_group_ids: []
     }
     productModal.value.open = true
 }
 
 const saveProduct = async () => {
     try {
+        // Validación de límite de platillos estrella (Máximo 3)
+        if (Number(productModal.value.data.is_featured) === 1) {
+            const currentFeaturedCount = products.value.filter(p => 
+                Number(p.is_featured) === 1 && p.id !== productModal.value.data.id
+            ).length;
+
+            if (currentFeaturedCount >= 3) {
+                toast.error("Límite excedido: Solo puedes tener hasta 3 platillos estrella.");
+                return;
+            }
+        }
+
         if (productModal.value.data.id) {
             await axios.put(`/api.php/products/${productModal.value.data.id}`, productModal.value.data)
         } else {
@@ -259,7 +271,12 @@ onMounted(() => {
                             <div v-else class="flex items-center justify-center w-full h-full text-gray-300">
                                 <ImageIcon class="w-12 h-12" />
                             </div>
-                            <span v-if="!Number(prod.is_available)" class="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">Agotado</span>
+                            <div class="absolute top-2 right-2 flex flex-col gap-2 items-end">
+                                <span v-if="!Number(prod.is_available)" class="bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded shadow-lg uppercase tracking-widest">Agotado</span>
+                                <div v-if="Number(prod.is_featured)" class="bg-amber-400 text-white p-1.5 rounded-full shadow-lg border border-white/50 backdrop-blur-sm">
+                                    <Star class="w-3.5 h-3.5 fill-current" />
+                                </div>
+                            </div>
                         </div>
                         <div class="p-4 flex-1 flex flex-col">
                             <div class="flex justify-between items-start mb-1">
@@ -419,9 +436,18 @@ onMounted(() => {
                                 </div>
                             </div>
                         </div>
-                        <div class="col-span-2 flex items-center gap-2 mt-2">
-                            <input type="checkbox" v-model="productModal.data.is_available" :true-value="1" :false-value="0" id="isAvail" class="w-4 h-4 text-orange-600 focus:ring-orange-500 rounded border-gray-300">
-                            <label for="isAvail" class="font-medium text-gray-700">Disponible para la venta</label>
+                        <div class="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                            <div class="flex items-center gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100 cursor-pointer hover:bg-white transition-colors">
+                                <input type="checkbox" v-model="productModal.data.is_available" :true-value="1" :false-value="0" id="isAvail" class="w-4 h-4 text-orange-600 focus:ring-orange-500 rounded border-gray-300">
+                                <label for="isAvail" class="text-sm font-bold text-gray-700 cursor-pointer">Disponible para la venta</label>
+                            </div>
+                            <div class="flex items-center gap-2 bg-amber-50/50 p-3 rounded-xl border border-amber-100 cursor-pointer hover:bg-white transition-colors group">
+                                <input type="checkbox" v-model="productModal.data.is_featured" :true-value="1" :false-value="0" id="isFeat" class="w-4 h-4 text-amber-500 focus:ring-amber-500 rounded border-amber-200">
+                                <label for="isFeat" class="text-sm font-bold text-amber-700 cursor-pointer flex items-center gap-2">
+                                    <Star class="w-4 h-4 fill-amber-400 text-amber-400" />
+                                    Es Platillo Estrella
+                                </label>
+                            </div>
                         </div>
 
                         <!-- Asignación de Extras -->
