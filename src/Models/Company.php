@@ -33,7 +33,7 @@ class Company extends BaseModel {
 
         // Poblamos productos y modificadores
         foreach ($categories as &$category) {
-            $stmtProd = $this->db->prepare("SELECT * FROM products WHERE category_id = :cat_id AND is_available = 1");
+            $stmtProd = $this->db->prepare("SELECT * FROM products WHERE category_id = :cat_id AND is_available = 1 ORDER BY is_featured DESC, name ASC");
             $stmtProd->execute([':cat_id' => $category['id']]);
             $products = $stmtProd->fetchAll(PDO::FETCH_ASSOC);
 
@@ -66,10 +66,132 @@ class Company extends BaseModel {
         return $groups;
     }
 
-    public function search($term) {
-        $sql = "SELECT id, name, slug, logo_url, banner_url, is_open, average_rating FROM {$this->table} WHERE name LIKE :q LIMIT 20";
+    public function search($term, $type = 'negocios', $lat = null, $lng = null, $state = null) {
+        $distanceSelect = "";
+        $order = "name ASC";
+        $whereClauses = [];
+        $params = [':q' => "%$term%"];
+
+        if ($lat !== null && $lng !== null) {
+            // Usar ST_Distance_Sphere (Línea recta exacta para mayor claridad)
+            $distanceSelect = ", (ST_Distance_Sphere(POINT(:lng, :lat), POINT(c.longitude, c.latitude)) / 1000) AS distance";
+            $order = "distance ASC";
+            $params[':lat'] = $lat;
+            $params[':lng'] = $lng;
+        }
+
+        if ($state) {
+            $whereClauses[] = "c.state LIKE :state";
+            $params[':state'] = "%$state%";
+        }
+
+        if ($type === 'platillos') {
+            $whereBase = "(p.name LIKE :q OR cat.name LIKE :q)";
+            if ($whereClauses) {
+                $whereBase .= " AND " . implode(" AND ", $whereClauses);
+            }
+            
+            $sql = "SELECT p.*, c.name as company_name, c.slug as company_slug, c.logo_url as company_logo {$distanceSelect}
+                    FROM products p
+                    JOIN categories cat ON p.category_id = cat.id
+                    JOIN {$this->table} c ON cat.company_id = c.id
+                    WHERE {$whereBase}
+                    ORDER BY {$order}
+                    LIMIT 30";
+        } else {
+            $whereBase = "(c.name LIKE :q OR c.category LIKE :q OR cat.name LIKE :q)";
+            if ($whereClauses) {
+                $whereBase .= " AND " . implode(" AND ", $whereClauses);
+            }
+
+            $sql = "SELECT c.id, c.name, c.slug, c.logo_url, c.banner_url, c.is_open, c.average_rating, c.description, c.category, c.address, c.timezone, c.schedule_config, c.status_mode, c.state {$distanceSelect}
+                    FROM {$this->table} c
+                    LEFT JOIN categories cat ON c.id = cat.company_id
+                    WHERE {$whereBase}
+                    GROUP BY c.id
+                    ORDER BY {$order}
+                    LIMIT 20";
+        }
+
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([':q' => "%$term%"]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->execute($params);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($results as &$result) {
+            if (isset($result['schedule_config'])) {
+                // Decodificar para que getIsOpenNow pueda leerlo
+                $config = is_string($result['schedule_config']) ? json_decode($result['schedule_config']) : $result['schedule_config'];
+                $result['schedule_config'] = $config;
+                // Calcular estado real-time
+                $result['is_open'] = $this->getIsOpenNow($result) ? 1 : 0;
+            }
+        }
+
+        return $results;
+    }
+
+    public function update($id, $data) {
+        $sql = "UPDATE {$this->table} SET 
+                name = :name,
+                description = :description,
+                address = :address,
+                latitude = :latitude,
+                longitude = :longitude,
+                timezone = :timezone,
+                status_mode = :status_mode,
+                logo_url = :logo_url,
+                banner_url = :banner_url,
+                is_open = :is_open,
+                schedule_config = :schedule_config,
+                category = :category,
+                state = :state
+                WHERE id = :id";
+        
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':name' => $data['name'],
+            ':description' => $data['description'] ?? null,
+            ':address' => $data['address'] ?? null,
+            ':latitude' => $data['latitude'] ?? null,
+            ':longitude' => $data['longitude'] ?? null,
+            ':timezone' => $data['timezone'] ?? 'America/Mexico_City',
+            ':status_mode' => $data['status_mode'] ?? 'AUTO',
+            ':logo_url' => $data['logo_url'] ?? null,
+            ':banner_url' => $data['banner_url'] ?? null,
+            ':is_open' => $data['is_open'] ? 1 : 0,
+            ':schedule_config' => is_string($data['schedule_config']) ? $data['schedule_config'] : json_encode($data['schedule_config']),
+            ':category' => $data['category'] ?? 'Restaurante',
+            ':state' => $data['state'] ?? null,
+            ':id' => $id
+        ]);
+    }
+
+    public function getIsOpenNow($company) {
+        $mode = $company['status_mode'] ?? 'AUTO';
+        if ($mode === 'OPEN') return true;
+        if ($mode === 'CLOSED') return false;
+
+        // Lógica AUTO
+        try {
+            $tz = new \DateTimeZone($company['timezone'] ?: 'America/Mexico_City');
+            $now = new \DateTime('now', $tz);
+            $day = strtolower($now->format('D')); // mon, tue...
+            $currentTime = $now->format('H:i');
+
+            $schedule = $company['schedule_config'];
+            if (is_string($schedule)) $schedule = json_decode($schedule);
+
+            if (!isset($schedule->$day) || ($schedule->$day->closed ?? false)) {
+                return false;
+            }
+
+            $open = $schedule->$day->open ?? '00:00';
+            $close = $schedule->$day->close ?? '23:59';
+
+            // Manejo básico de horario (no cruza medianoche para simplificar)
+            return ($currentTime >= $open && $currentTime <= $close);
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 }
