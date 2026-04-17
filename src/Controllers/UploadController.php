@@ -48,8 +48,8 @@ class UploadController {
         $targetPath = $uploadDir . $fileName;
 
         if (move_uploaded_file($file['tmp_name'], $targetPath)) {
-            // Retornar la URL relativa para guardar en la BD
-            $relativeUrl = '/uploads/' . $fileName;
+            // Retornar la URL relativa para guardar en la BD (sin diagonal inicial para compatibilidad)
+            $relativeUrl = 'uploads/' . $fileName;
             echo json_encode([
                 "message" => "Imagen subida con éxito",
                 "url" => $relativeUrl

@@ -45,7 +45,7 @@ export const useAuthStore = defineStore('auth', () => {
     // ACCIONES
     async function login(email, password) {
         try {
-            const { data } = await axios.post('/api.php/auth/login', { email, password })
+            const { data } = await axios.post('api.php/auth/login', { email, password })
 
             if (data.user) {
                 // ... (lógica existente de combinación de direcciones y token)
@@ -83,7 +83,7 @@ export const useAuthStore = defineStore('auth', () => {
     async function register(userData) {
         try {
             const localAddresses = user.value.addresses || []
-            const { data } = await axios.post('/api.php/auth/register', userData)
+            const { data } = await axios.post('api.php/auth/register', userData)
             
             // Combinar con direcciones previas de invitado
             const serverAddresses = data.user.addresses || []
@@ -123,7 +123,7 @@ export const useAuthStore = defineStore('auth', () => {
     async function syncProfile() {
         if (!isAuthenticated.value) return;
         try {
-            await axios.post('/api.php/users/profile', {
+            await axios.post('api.php/users/profile', {
                 id: user.value.id,
                 name: user.value.name,
                 phone: user.value.phone,

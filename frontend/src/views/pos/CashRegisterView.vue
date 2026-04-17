@@ -226,7 +226,7 @@ const openShift = async () => {
     if(!startingCash.value && startingCash.value !== 0) return
     isSubmitting.value = true
     try {
-        await axios.post('/api.php/cash-register/open', {
+        await axios.post('api.php/cash-register/open', {
             company_id: companyId,
             user_id: auth.user?.id || 1, // Fallback si no hay sesion auth
             starting_cash: startingCash.value
@@ -243,7 +243,7 @@ const openShift = async () => {
 const recordExpense = async () => {
     isSubmitting.value = true
     try {
-        await axios.post('/api.php/expenses', {
+        await axios.post('api.php/expenses', {
             company_id: companyId,
             cash_register_shift_id: shiftData.value.shift.id,
             user_id: auth.user?.id || 1,
@@ -274,7 +274,7 @@ const closeShift = async () => {
 
     isSubmitting.value = true
     try {
-        const res = await axios.post('/api.php/cash-register/close', {
+        const res = await axios.post('api.php/cash-register/close', {
             shift_id: shiftData.value.shift.id,
             user_id: auth.user?.id || 1,
             actual_ending_cash: actualCash.value

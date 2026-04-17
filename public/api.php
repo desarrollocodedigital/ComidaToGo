@@ -9,7 +9,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit();
 }
 
-require_once __DIR__ . '/../src/bootstrap.php';
+if (file_exists(__DIR__ . '/src/bootstrap.php')) {
+    require_once __DIR__ . '/src/bootstrap.php';
+} else {
+    require_once __DIR__ . '/../src/bootstrap.php';
+}
 
 use App\Controllers\CompanyController;
 use App\Controllers\CategoryController;

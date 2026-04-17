@@ -37,7 +37,7 @@ const addUser = async () => {
     submitting.value = true
     errorMessage.value = ''
     try {
-        await axios.post('/api.php/users', { ...form.value, company_id: companyId })
+        await axios.post('api.php/users', { ...form.value, company_id: companyId })
         form.value = { name: '', email: '', password: '', role: 'CASHIER' }
         showModal.value = false
         await loadUsers()
@@ -75,7 +75,7 @@ const toggleStatus = async (user) => {
     if (!ok) return
 
     try {
-        await axios.put('/api.php/users/status', {
+        await axios.put('api.php/users/status', {
             id: user.id,
             active: newStatus
         })

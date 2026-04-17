@@ -127,7 +127,7 @@ const routes = [
 import { useDialogStore } from '../stores/dialog'
 
 const router = createRouter({
-    history: createWebHistory(),
+    history: createWebHistory('/Dev/COMIDATOGO/'),
     routes
 })
 
