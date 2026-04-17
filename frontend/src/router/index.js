@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import TenantView from '../views/TenantView.vue'
+import ExpenseCategoryView from '../views/admin/ExpenseCategoryView.vue'
 
 const routes = [
     {
@@ -23,7 +24,7 @@ const routes = [
         path: '/admin/dashboard',
         name: 'dashboard',
         component: () => import('../views/admin/AdminDashboard.vue'),
-        meta: { requiresAuth: true, roles: ['OWNER'] }
+        meta: { requiresAuth: true, roles: ['OWNER', 'CASHIER', 'KITCHEN', 'WAITER'] }
     },
     {
         path: '/admin/settings',
@@ -35,13 +36,19 @@ const routes = [
         path: '/admin/menu',
         name: 'menu-manager',
         component: () => import('../views/admin/MenuManagerView.vue'),
-        meta: { requiresAuth: true, roles: ['OWNER'] }
+        meta: { requiresAuth: true, roles: ['OWNER', 'KITCHEN'] }
     },
     {
         path: '/admin/team',
         name: 'team-manager',
         component: () => import('../views/admin/UserManagementView.vue'),
         meta: { requiresAuth: true, roles: ['OWNER'] }
+    },
+    {
+        path: '/admin/expense-categories',
+        name: 'expense-categories',
+        component: ExpenseCategoryView,
+        meta: { requiresAuth: true, role: 'OWNER' }
     },
     {
         path: '/admin/tables',
@@ -59,7 +66,7 @@ const routes = [
         path: '/cocina',
         name: 'kitchen',
         component: () => import('../views/KitchenDashboard.vue'),
-        meta: { requiresAuth: true, roles: ['OWNER', 'KITCHEN'] }
+        meta: { requiresAuth: true, roles: ['OWNER', 'KITCHEN', 'WAITER'] }
     },
     {
         path: '/pos',
@@ -117,6 +124,8 @@ const routes = [
     }
 ]
 
+import { useDialogStore } from '../stores/dialog'
+
 const router = createRouter({
     history: createWebHistory(),
     routes
@@ -135,11 +144,16 @@ router.beforeEach((to, from, next) => {
         if (!user) {
             next('/login')
         } else if (to.meta.roles && !to.meta.roles.includes(user.role)) {
-            alert("No tienes permiso para ver esta página")
-            // Redirect staff to their home
-            if (user.role === 'KITCHEN') next('/cocina')
-            else if (user.role === 'CASHIER') next('/pos')
-            else if (user.role === 'WAITER') next('/pos')
+            const dialog = useDialogStore()
+            dialog.alert({
+                title: 'Acceso Restringido',
+                message: 'Tu cuenta no tiene los permisos suficientes para ingresar a este módulo.',
+                confirmText: 'Entendido',
+                type: 'warning'
+            })
+            
+            // Redirect staff to dashboard if they are staff
+            if (['KITCHEN', 'CASHIER', 'WAITER'].includes(user.role)) next('/admin/dashboard')
             else next('/')
         } else {
             next()

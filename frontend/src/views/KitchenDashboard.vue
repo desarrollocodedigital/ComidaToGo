@@ -300,7 +300,7 @@ const readyOrders = computed(() => {
                             </div>
 
                             <!-- Sección Derecha: Acción -->
-                            <div class="w-full xl:w-48 p-6 bg-slate-900/80 border-t xl:border-t-0 xl:border-l border-slate-800 flex items-center justify-center shrink-0">
+                            <div v-if="auth.user?.role !== 'WAITER'" class="w-full xl:w-48 p-6 bg-slate-900/80 border-t xl:border-t-0 xl:border-l border-slate-800 flex items-center justify-center shrink-0">
                                 <button @click="updateStatus(order.id, 'READY')" class="w-full h-full min-h-[5rem] xl:min-h-[10rem] bg-green-500 text-white p-4 rounded-2xl font-black text-xl hover:bg-green-600 shadow-xl shadow-green-500/10 transition-transform active:scale-95 flex flex-col items-center justify-center gap-2">
                                     <CheckCircle class="w-10 h-10" />
                                     <span>LISTO</span>

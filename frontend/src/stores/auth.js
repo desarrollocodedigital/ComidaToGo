@@ -48,7 +48,7 @@ export const useAuthStore = defineStore('auth', () => {
             const { data } = await axios.post('/api.php/auth/login', { email, password })
 
             if (data.user) {
-                // Combinar direcciones: Servidor + Locales (sin duplicados)
+                // ... (lógica existente de combinación de direcciones y token)
                 const serverAddresses = data.user.addresses || []
                 const localAddresses = user.value.addresses || []
                 const mergedAddresses = [...new Set([...serverAddresses, ...localAddresses])]
@@ -62,21 +62,21 @@ export const useAuthStore = defineStore('auth', () => {
                 token.value = data.token || 'dummy-token'
                 localStorage.setItem('token', token.value)
 
-                // Sincronizar carrito tras el login exitoso
                 const cart = useCartStore()
                 cart.loadFromServer(data.user.cart_data)
 
-                if (user.value.role === 'OWNER') {
+                if (['OWNER', 'CASHIER', 'KITCHEN', 'WAITER'].includes(user.value.role)) {
                     router.push('/admin/dashboard')
                 } else {
                     router.push('/')
                 }
-                return true
+                return { success: true }
             }
-            return false
+            return { success: false, message: 'Credenciales incorrectas' }
         } catch (e) {
             console.error(e)
-            return false
+            const msg = e.response?.data?.message || 'Error de conexión'
+            return { success: false, message: msg }
         }
     }
 
@@ -107,7 +107,7 @@ export const useAuthStore = defineStore('auth', () => {
             const cart = useCartStore()
             cart.loadFromServer(data.user.cart_data)
 
-            if (user.value.role === 'OWNER') {
+            if (['OWNER', 'CASHIER', 'KITCHEN', 'WAITER'].includes(user.value.role)) {
                 router.push('/admin/dashboard')
             } else {
                 router.push('/')
@@ -168,12 +168,15 @@ export const useAuthStore = defineStore('auth', () => {
         await syncProfile()
     }
 
-    function logout() {
-        // Limpiamos el carrito primero
+    async function logout() {
+        // 1. Sincronización final: Guardamos el estado actual en la nube antes de limpiar
         const cart = useCartStore()
-        cart.clearCart()
+        await cart.syncToBackend(true)
 
-        // Limpieza total de sesión
+        // 2. Limpieza local: Borramos el carrito del navegador pero NO de la base de datos
+        cart.clearLocalCart()
+
+        // 3. Limpieza de sesión
         user.value = {
             id: null,
             name: '',

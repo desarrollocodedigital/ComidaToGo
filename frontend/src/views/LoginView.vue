@@ -11,9 +11,9 @@ const error = ref('')
 const doLogin = async () => {
     loading.value = true
     error.value = ''
-    const success = await auth.login(email.value, password.value)
-    if (!success) {
-        error.value = 'Credenciales incorrectas'
+    const res = await auth.login(email.value, password.value)
+    if (!res.success) {
+        error.value = res.message || 'Credenciales incorrectas'
     }
     loading.value = false
 }

@@ -57,6 +57,23 @@ class UserController {
         }
     }
 
+    // PUT /api.php/users/status
+    public function toggleStatus() {
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (!isset($input['id'], $input['active'])) {
+            http_response_code(400);
+            echo json_encode(["message" => "Faltan datos (id, active)"]);
+            return;
+        }
+
+        if ($this->model->toggleStatus($input['id'], $input['active'])) {
+            echo json_encode(["message" => "Estado actualizado"]);
+        } else {
+            http_response_code(500);
+            echo json_encode(["message" => "Error al actualizar estado"]);
+        }
+    }
+
     // PUT o POST /api.php/users/profile
     public function updateProfile() {
         $input = json_decode(file_get_contents('php://input'), true);

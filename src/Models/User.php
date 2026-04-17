@@ -9,7 +9,7 @@ class User extends BaseModel {
     protected $table = 'users';
 
     public function getUsersByCompany($companyId) {
-        $stmt = $this->db->prepare("SELECT id, name, email, role, company_id, created_at FROM {$this->table} WHERE company_id = :cid ORDER BY created_at DESC");
+        $stmt = $this->db->prepare("SELECT id, name, email, role, company_id, active, created_at FROM {$this->table} WHERE company_id = :cid ORDER BY created_at DESC");
         $stmt->execute([':cid' => $companyId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -64,5 +64,13 @@ class User extends BaseModel {
         $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE id = :id AND role IN ('KITCHEN','CASHIER','WAITER')");
         $stmt->execute([':id' => $id]);
         return $stmt->rowCount() > 0;
+    }
+
+    public function toggleStatus($id, $status) {
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET active = :status WHERE id = :id AND role IN ('KITCHEN','CASHIER','WAITER')");
+        return $stmt->execute([
+            ':status' => (int)$status,
+            ':id' => $id
+        ]);
     }
 }

@@ -70,6 +70,14 @@ class Auth extends BaseModel {
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($password, $user['password'])) {
+            // Verificar si la cuenta está activa
+            if (isset($user['active']) && (int)$user['active'] === 0) {
+                return [
+                    "success" => false,
+                    "inactive" => true,
+                    "message" => "Cuenta suspendida, por favor ponerse en contacto con el dueño del negocio"
+                ];
+            }
             $companyId = null;
             if ($user['role'] === 'OWNER') {
                 $stmtC = $this->db->prepare("SELECT id FROM companies WHERE owner_id = :uid LIMIT 1");
