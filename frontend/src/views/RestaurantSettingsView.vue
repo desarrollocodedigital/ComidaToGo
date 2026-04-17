@@ -85,7 +85,7 @@ const uploadImage = async (event, type) => {
     }
 
     try {
-        const { data } = await axios.post('/api.php/upload', formData, {
+        const { data } = await axios.post('api.php/upload', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         })
 

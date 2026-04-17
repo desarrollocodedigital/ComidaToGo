@@ -3,7 +3,8 @@ import vue from '@vitejs/plugin-vue'
 import path from 'path'
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  base: mode === 'production' ? '/Dev/COMIDATOGO/' : '/',
   plugins: [vue()],
   resolve: {
     alias: {
@@ -24,15 +25,14 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: '../public/assets',
-    emptyOutDir: true,
-    assetsDir: '', // Assets directamente en assets/
+    outDir: '../public',
+    emptyOutDir: false, // Importante: no borrar api.php o index.php
     rollupOptions: {
       output: {
-        entryFileNames: `main.js`,
-        chunkFileNames: `[name].js`,
-        assetFileNames: `[name].[ext]`
+        entryFileNames: `assets/[name].js`,
+        chunkFileNames: `assets/[name].js`,
+        assetFileNames: `assets/[name].[ext]`
       }
     }
   }
-})
+}))

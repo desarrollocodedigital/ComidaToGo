@@ -169,7 +169,7 @@ const sendMessage = async () => {
     
     sending.value = true
     try {
-        await axios.post('/api.php/chat/message', {
+        await axios.post('api.php/chat/message', {
             chat_id: activeChatId.value,
             sender_type: senderType.value,
             message: textToSend

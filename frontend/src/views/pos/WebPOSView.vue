@@ -987,7 +987,7 @@ const placePOSOrder = async () => {
     }
 
     try {
-        await axios.post('/api.php/orders', orderPayload)
+        await axios.post('api.php/orders', orderPayload)
         
         if (cartType.value === 'DINE_IN' && selectedTableId.value) {
              await axios.put(`/api.php/tables/${selectedTableId.value}/status`, { status: 'OCCUPIED' })

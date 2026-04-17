@@ -51,7 +51,7 @@ const saveCategory = async () => {
         if (categoryModal.value.data.id) {
             await axios.put(`/api.php/categories/${categoryModal.value.data.id}`, categoryModal.value.data)
         } else {
-            await axios.post('/api.php/categories', categoryModal.value.data)
+            await axios.post('api.php/categories', categoryModal.value.data)
         }
         categoryModal.value.open = false
         toast.success(categoryModal.value.data.id ? "Categoría actualizada" : "Categoría creada")
@@ -101,7 +101,7 @@ const saveProduct = async () => {
         if (productModal.value.data.id) {
             await axios.put(`/api.php/products/${productModal.value.data.id}`, productModal.value.data)
         } else {
-            await axios.post('/api.php/products', productModal.value.data)
+            await axios.post('api.php/products', productModal.value.data)
         }
         productModal.value.open = false
         toast.success(productModal.value.data.id ? "Platillo actualizado" : "Platillo creado")
@@ -140,7 +140,7 @@ const handleFileUpload = async (event) => {
 
     uploadingImage.value = true
     try {
-        const res = await axios.post('/api.php/upload', formData, {
+        const res = await axios.post('api.php/upload', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         })
         productModal.value.data.image_url = res.data.url
@@ -180,7 +180,7 @@ const saveModifierGroup = async () => {
         if (groupId) {
             await axios.put(`/api.php/modifiers/${groupId}`, modifierModal.value.data)
         } else {
-            const res = await axios.post('/api.php/modifiers', modifierModal.value.data)
+            const res = await axios.post('api.php/modifiers', modifierModal.value.data)
             groupId = res.data.id
         }
 

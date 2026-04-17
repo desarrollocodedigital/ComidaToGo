@@ -52,7 +52,7 @@ export const useCartStore = defineStore('cart', () => {
                     company_name: companyName.value
                 }
 
-                await axios.post('/api.php/cart/sync', {
+                await axios.post('api.php/cart/sync', {
                     user_id: auth.user.id,
                     cart_data: cart_data
                 })

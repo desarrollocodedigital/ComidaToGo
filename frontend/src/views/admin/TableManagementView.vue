@@ -48,7 +48,7 @@ const saveTable = async () => {
             await axios.put(`/api.php/tables/${tableModal.value.data.id}`, tableModal.value.data)
             toast.success("Mesa actualizada correctamente")
         } else {
-            await axios.post('/api.php/tables', tableModal.value.data)
+            await axios.post('api.php/tables', tableModal.value.data)
             toast.success("Mesa creada correctamente")
         }
         tableModal.value.open = false

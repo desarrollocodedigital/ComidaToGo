@@ -29,7 +29,7 @@ const createCategory = async () => {
     if (!newCategoryName.value.trim()) return
     submitting.value = true
     try {
-        await axios.post('/api.php/expense-categories', {
+        await axios.post('api.php/expense-categories', {
             company_id: companyId,
             name: newCategoryName.value
         })

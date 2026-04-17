@@ -206,7 +206,7 @@ const submitOrder = async () => {
             }))
         }
 
-        const { data } = await axios.post('/api.php/orders', payload)
+        const { data } = await axios.post('api.php/orders', payload)
         
         // Success
         cartStore.clearCart()
