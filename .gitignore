@@ -12,5 +12,4 @@ vendor/
 .env
 Jornada.md
 scratch/
-public/test_db.php
 public/.htaccess
