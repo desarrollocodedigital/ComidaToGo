@@ -106,8 +106,54 @@ const goToCheckout = () => {
 </script>
 
 <template>
-    <div v-if="loading" class="flex items-center justify-center min-h-screen">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+    <!-- Global Menu Skeleton (Initial Loading) -->
+    <div v-if="loading" class="bg-white min-h-screen">
+        <!-- Header Skeleton -->
+        <div class="bg-white border-b border-gray-100 px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-4 animate-pulse">
+                <div class="w-10 h-10 bg-gray-100 rounded-full"></div>
+                <div class="space-y-2">
+                    <div class="w-32 h-4 bg-gray-100 rounded"></div>
+                    <div class="w-20 h-3 bg-gray-100 rounded"></div>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <div class="w-10 h-10 bg-gray-100 rounded-full animate-pulse"></div>
+                <div class="w-10 h-10 bg-gray-100 rounded-full animate-pulse"></div>
+            </div>
+        </div>
+
+        <!-- Categories Skeleton -->
+        <div class="border-b border-gray-50 bg-white py-3">
+            <div class="max-w-3xl mx-auto px-4 flex gap-4 overflow-hidden">
+                <div v-for="i in 5" :key="i" class="w-24 h-8 bg-gray-100 rounded-full animate-pulse"></div>
+            </div>
+        </div>
+
+        <main class="max-w-3xl mx-auto px-4 py-10 space-y-12">
+            <!-- Featured Skeleton -->
+            <div class="space-y-6">
+                <div class="w-48 h-6 bg-gray-100 rounded animate-pulse"></div>
+                <div class="flex gap-4 overflow-hidden">
+                    <div v-for="i in 2" :key="i" class="min-w-[280px] h-32 bg-gray-50 rounded-3xl border border-gray-100 animate-pulse"></div>
+                </div>
+            </div>
+
+            <!-- Products List Skeleton -->
+            <div class="space-y-8">
+                <div v-for="i in 3" :key="i" class="space-y-4">
+                    <div class="w-40 h-5 bg-gray-100 rounded animate-pulse"></div>
+                    <div v-for="j in 2" :key="j" class="flex gap-4 p-4 rounded-2xl border border-gray-50">
+                        <div class="flex-1 space-y-3 animate-pulse">
+                            <div class="w-3/4 h-5 bg-gray-100 rounded"></div>
+                            <div class="w-full h-3 bg-gray-100 rounded"></div>
+                            <div class="w-1/2 h-6 bg-gray-100 rounded mt-4"></div>
+                        </div>
+                        <div class="w-24 h-24 bg-gray-100 rounded-xl animate-pulse"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 
     <div v-else-if="error" class="text-center py-20">
@@ -154,7 +200,7 @@ const goToCheckout = () => {
             
             <!-- Category Scroll -->
             <div class="border-t border-gray-50">
-                <div class="max-w-3xl mx-auto flex overflow-x-auto px-4 py-2 gap-4 no-scrollbar justify-center sm:justify-start lg:justify-center">
+                <div class="max-w-3xl mx-auto flex overflow-x-auto px-4 py-2 gap-4 no-scrollbar justify-start lg:justify-center">
                     <a 
                         v-for="cat in company.menu" 
                         :key="cat.id" 
@@ -188,8 +234,12 @@ const goToCheckout = () => {
                         <div class="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-bl-[100px] -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
                         
                         <div class="flex gap-4 relative z-10">
-                            <div v-if="product.image_url" class="w-20 h-20 rounded-2xl overflow-hidden shadow-md flex-shrink-0">
-                                <img :src="product.image_url" class="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500" />
+                            <div v-if="product.image_url" class="w-20 h-20 rounded-2xl overflow-hidden shadow-md flex-shrink-0 bg-amber-50 animate-pulse">
+                                <img 
+                                    :src="product.image_url" 
+                                    @load="$event.target.classList.remove('opacity-0'); $event.target.parentElement.classList.remove('animate-pulse')"
+                                    class="w-full h-full object-cover transition-all duration-700 opacity-0" 
+                                />
                             </div>
                             <div class="flex-1">
                                 <h3 class="font-black text-gray-900 mb-1 group-hover:text-amber-600 transition-colors line-clamp-1">{{ product.name }}</h3>
@@ -228,8 +278,12 @@ const goToCheckout = () => {
                             </div>
                         </div>
                         <!-- Imagen -->
-                        <div v-if="product.image_url" class="w-24 h-24 bg-gray-200 rounded-lg flex-shrink-0 overflow-hidden">
-                             <img :src="product.image_url" class="w-full h-full object-cover" />
+                        <div v-if="product.image_url" class="w-24 h-24 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden animate-pulse">
+                             <img 
+                                :src="product.image_url" 
+                                @load="$event.target.classList.remove('opacity-0'); $event.target.parentElement.classList.remove('animate-pulse')"
+                                class="w-full h-full object-cover transition-all duration-700 opacity-0" 
+                            />
                         </div>
                     </div>
                 </div>

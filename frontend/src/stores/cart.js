@@ -38,26 +38,38 @@ export const useCartStore = defineStore('cart', () => {
 
     // SYNC LOGIC
     let syncTimeout = null
-    async function syncToBackend() {
+    async function syncToBackend(immediate = false) {
         const auth = useAuthStore()
         if (!auth.isAuthenticated || isSyncing.value) return
 
         if (syncTimeout) clearTimeout(syncTimeout)
         
-        syncTimeout = setTimeout(async () => {
+        const performSync = async () => {
             try {
+                const cart_data = {
+                    items: items.value,
+                    company_id: companyId.value,
+                    company_name: companyName.value
+                }
+
                 await axios.post('/api.php/cart/sync', {
                     user_id: auth.user.id,
-                    cart_data: {
-                        items: items.value,
-                        company_id: companyId.value,
-                        company_name: companyName.value
-                    }
+                    cart_data: cart_data
                 })
+
+                // IMPORTANTE: Mantener el authStore sincronizado para evitar "Zombie Items" al recargar
+                auth.user.cart_data = JSON.stringify(cart_data)
+                
             } catch (e) {
                 console.error("Failed to sync cart to backend", e)
             }
-        }, 2000) // 2s debounce
+        }
+
+        if (immediate) {
+            await performSync()
+        } else {
+            syncTimeout = setTimeout(performSync, 1000) // 1s debounce
+        }
     }
 
     function loadFromServer(cartData) {
@@ -148,6 +160,8 @@ export const useCartStore = defineStore('cart', () => {
             companyId.value = null
             companyName.value = ''
         }
+        // Forzar sincronización inmediata al eliminar
+        syncToBackend(true)
     }
 
     function clearCart() {
@@ -157,7 +171,32 @@ export const useCartStore = defineStore('cart', () => {
         localStorage.removeItem('cart_items')
         localStorage.removeItem('cart_company_id')
         localStorage.removeItem('cart_company_name')
+        // Forzar sincronización inmediata al vaciar (Borrado intencional)
+        syncToBackend(true)
     }
 
-    return { items, companyId, companyName, cartCount, cartTotal, addItem, removeItem, clearCart, loadFromServer }
+    function clearLocalCart() {
+        // Limpiamos localmente pero NO sincronizamos con la nube
+        // Esto es para el Logout, donde queremos que la nube conserve los datos
+        items.value = []
+        companyId.value = null
+        companyName.value = ''
+        localStorage.removeItem('cart_items')
+        localStorage.removeItem('cart_company_id')
+        localStorage.removeItem('cart_company_name')
+    }
+
+    return { 
+        items, 
+        companyId, 
+        companyName, 
+        cartCount, 
+        cartTotal, 
+        addItem, 
+        removeItem, 
+        clearCart, 
+        clearLocalCart, 
+        loadFromServer, 
+        syncToBackend 
+    }
 })

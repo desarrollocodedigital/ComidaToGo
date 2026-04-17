@@ -13,6 +13,7 @@ const authStore = useAuthStore()
 const dialog = useDialogStore()
 
 const loading = ref(false)
+const isInitialLoading = ref(true)
 const detectingLocation = ref(false)
 const orderType = ref('PICKUP') // PICKUP | DELIVERY
 
@@ -61,6 +62,11 @@ onMounted(() => {
     } else {
         useNewAddress.value = true
     }
+
+    // Pequeño retardo para que el skeleton sea visible y la transición suave
+    setTimeout(() => {
+        isInitialLoading.value = false
+    }, 600)
 })
 
 const deleteAddress = async (idx, addr) => {
@@ -220,7 +226,7 @@ const submitOrder = async () => {
 
 <template>
     <div class="min-h-screen bg-gray-50 pb-20">
-        <header class="bg-white p-4 shadow-sm flex items-center justify-between">
+        <header class="bg-white p-4 shadow-sm flex items-center justify-between sticky top-0 z-30">
             <div class="flex items-center gap-4">
                 <button @click="router.back()" class="p-2 hover:bg-gray-100 rounded-full">
                     <ArrowLeft class="w-6 h-6" />
@@ -229,7 +235,29 @@ const submitOrder = async () => {
             </div>
         </header>
 
-        <main class="max-w-2xl mx-auto p-4 space-y-6 mt-4">
+        <!-- Skeleton Loading State -->
+        <main v-if="isInitialLoading" class="max-w-2xl mx-auto p-4 space-y-6 mt-4">
+            <div class="bg-white p-5 rounded-xl shadow-sm animate-pulse space-y-4">
+                <div class="h-6 bg-gray-100 w-1/4 rounded"></div>
+                <div v-for="i in 2" :key="i" class="flex gap-4 py-3">
+                    <div class="w-16 h-16 bg-gray-100 rounded-lg"></div>
+                    <div class="flex-1 space-y-2">
+                        <div class="h-4 bg-gray-100 w-1/2 rounded"></div>
+                        <div class="h-3 bg-gray-100 w-3/4 rounded"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm animate-pulse space-y-6">
+                <div class="h-6 bg-gray-100 w-1/3 rounded"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="h-20 bg-gray-50 rounded-xl"></div>
+                    <div class="h-20 bg-gray-50 rounded-xl"></div>
+                </div>
+                <div class="h-32 bg-gray-50 rounded-xl"></div>
+            </div>
+        </main>
+
+        <main v-else class="max-w-2xl mx-auto p-4 space-y-6 mt-4 animate-in fade-in duration-500">
             
             <!-- Empty Cart -->
             <div v-if="cartStore.items.length === 0" class="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-100">
@@ -243,8 +271,14 @@ const submitOrder = async () => {
             <template v-else>
                 <div class="bg-white p-5 rounded-xl shadow-sm">
                     <h2 class="font-bold text-gray-800 mb-4">Resumen</h2>
-                    <div v-for="item in cartStore.items" :key="item.key" class="flex gap-4 py-3 border-b border-gray-50 last:border-0 items-start">
-                        <img v-if="item.imageUrl" :src="item.imageUrl" class="w-16 h-16 rounded-lg object-cover bg-gray-100 shrink-0 border border-gray-50">
+                    <div v-for="item in cartStore.items" :key="item.key" class="flex gap-4 py-3 border-b border-gray-50 last:border-0 items-start transition-all">
+                        <div v-if="item.imageUrl" class="w-16 h-16 rounded-lg bg-gray-100 shrink-0 overflow-hidden animate-pulse border border-gray-50">
+                            <img 
+                                :src="item.imageUrl" 
+                                @load="$event.target.classList.remove('opacity-0'); $event.target.parentElement.classList.remove('animate-pulse')"
+                                class="w-full h-full object-cover transition-opacity duration-700 opacity-0"
+                            >
+                        </div>
                         <div class="flex-1">
                             <div class="flex justify-between items-start">
                                 <span><span class="font-bold text-gray-900">{{ item.quantity }}x</span> <span class="font-bold text-gray-800">{{ item.name }}</span></span>

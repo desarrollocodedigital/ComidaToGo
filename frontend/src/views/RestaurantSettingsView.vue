@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from '../composables/useToast'
-import { Save, MapPin, Image, Store, Clock } from 'lucide-vue-next'
+import { Save, MapPin, Image, Store, Clock, ArrowLeft } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 const toast = useToast()
@@ -121,13 +121,22 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-50 p-6">
-        <header class="max-w-4xl mx-auto flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-800">Configuración del Restaurante</h1>
-            <router-link to="/admin/dashboard" class="text-orange-600 font-bold hover:underline">
-                Volver al Panel
-            </router-link>
+    <div class="min-h-screen bg-gray-50">
+        <!-- Header Estándar -->
+        <header class="bg-white shadow-sm border-b border-gray-100 mb-8">
+            <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl font-black text-gray-800">Configuración</h1>
+                    <p class="text-sm text-gray-500">Ajustes generales, horarios y apariencia de tu negocio</p>
+                </div>
+                <router-link to="/admin/dashboard" class="flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl shadow-sm hover:bg-black transition-all font-bold w-fit">
+                    <ArrowLeft class="w-5 h-5" />
+                    Volver al Panel
+                </router-link>
+            </div>
         </header>
+
+        <div class="max-w-7xl mx-auto px-6 pb-12">
 
         <div v-if="loading" class="text-center py-20">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
@@ -356,6 +365,7 @@ onMounted(() => {
                 <Save class="w-5 h-5" />
                 {{ saving ? 'Guardando...' : 'Guardar Cambios' }}
             </button>
+        </div>
         </div>
     </div>
 </template>

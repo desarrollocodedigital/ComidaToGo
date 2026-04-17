@@ -109,6 +109,13 @@ class Order extends BaseModel {
             $params[':crsid'] = $data['cash_register_shift_id'];
         }
 
+        // Registrar timestamps de eficacia de cocina
+        if ($data['status'] === 'ACCEPTED') {
+            $fields .= ", accepted_at = NOW()";
+        } elseif ($data['status'] === 'READY') {
+            $fields .= ", ready_at = NOW()";
+        }
+
         $sql = "UPDATE {$this->table} SET $fields WHERE id = :id";
         $stmt = $this->db->prepare($sql);
         $result = $stmt->execute($params);
@@ -172,8 +179,8 @@ class Order extends BaseModel {
                 ];
             }
 
-            $sql = "INSERT INTO {$this->table} (company_id, customer_name, customer_phone, customer_address, customer_references, order_type, table_id, payment_method, cash_register_shift_id, total_amount, status, scheduled_at) 
-                    VALUES (:cid, :cname, :cphone, :caddr, :cref, :otype, :tid, :pm, :crsid, :total, :status, :sched)";
+            $sql = "INSERT INTO {$this->table} (company_id, customer_name, customer_phone, customer_address, customer_references, order_type, table_id, payment_method, cash_register_shift_id, total_amount, status, scheduled_at, accepted_at) 
+                    VALUES (:cid, :cname, :cphone, :caddr, :cref, :otype, :tid, :pm, :crsid, :total, :status, :sched, :accepted_at)";
             
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
@@ -188,7 +195,8 @@ class Order extends BaseModel {
                 ':crsid' => $input['cash_register_shift_id'] ?? null,
                 ':total' => $totalAmount,
                 ':status' => $input['status'] ?? 'PENDING',
-                ':sched' => $input['scheduled_at'] ?? null
+                ':sched' => $input['scheduled_at'] ?? null,
+                ':accepted_at' => (isset($input['status']) && $input['status'] === 'ACCEPTED') ? date('Y-m-d H:i:s') : null
             ]);
             
             $orderId = $this->db->lastInsertId();

@@ -25,6 +25,7 @@ use App\Controllers\ChatController;
 use App\Controllers\UserController;
 use App\Controllers\UploadController;
 use App\Controllers\CartController;
+use App\Controllers\ExpenseCategoryController;
 
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $uri = explode('/', $uri);
@@ -98,6 +99,16 @@ if ($resource === 'auth') {
         $controller->getSalesSummary();
     } elseif ($method === 'GET' && $param === 'top-products') {
         $controller->getTopProducts();
+    } elseif ($method === 'GET' && $param === 'peak-hours') {
+        $controller->getPeakHours();
+    } elseif ($method === 'GET' && $param === 'order-types') {
+        $controller->getOrderTypeBreakdown();
+    } elseif ($method === 'GET' && $param === 'expense-breakdown') {
+        $controller->getExpenseBreakdown();
+    } elseif ($method === 'GET' && $param === 'kitchen-efficiency') {
+        $controller->getKitchenEfficiency();
+    } elseif ($method === 'GET' && $param === 'customer-retention') {
+        $controller->getCustomerRetention();
     }
 } elseif ($resource === 'tables') {
     $controller = new TableController();
@@ -193,8 +204,21 @@ if ($resource === 'auth') {
         } else {
             $controller->create();
         }
-    } elseif ($method === 'PUT' && $param === 'profile') {
-        $controller->updateProfile();
+    } elseif ($method === 'PUT') {
+        if ($param === 'profile') {
+            $controller->updateProfile();
+        } elseif ($param === 'status') {
+            $controller->toggleStatus();
+        }
+    } elseif ($method === 'DELETE' && $param) {
+        $controller->delete($param);
+    }
+} elseif ($resource === 'expense-categories') {
+    $controller = new ExpenseCategoryController();
+    if ($method === 'GET') {
+        $controller->getByCompany();
+    } elseif ($method === 'POST') {
+        $controller->create();
     } elseif ($method === 'DELETE' && $param) {
         $controller->delete($param);
     }

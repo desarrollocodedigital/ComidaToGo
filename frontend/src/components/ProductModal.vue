@@ -122,8 +122,13 @@ const addToCart = () => {
     <div class="bg-white w-full max-w-lg sm:rounded-xl shadow-2xl pointer-events-auto flex flex-col max-h-[90vh] overflow-hidden transform transition-all">
       
       <!-- Header with Image -->
-      <div v-if="showImage" class="relative h-48 bg-gray-200 shrink-0">
-        <img v-if="product?.image_url" :src="product.image_url" class="absolute inset-0 w-full h-full object-cover" />
+      <div v-if="showImage" class="relative h-48 bg-gray-100 shrink-0 overflow-hidden" :class="{ 'animate-pulse': product?.image_url }">
+        <img 
+          v-if="product?.image_url" 
+          :src="product.image_url" 
+          @load="$event.target.classList.remove('opacity-0'); $event.target.parentElement.classList.remove('animate-pulse')"
+          class="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 opacity-0" 
+        />
         <div v-else class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
           <!-- Fallback image logic if needed -->
         </div>

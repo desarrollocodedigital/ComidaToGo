@@ -1,15 +1,22 @@
 <template>
-  <div class="cash-register min-h-screen bg-gray-100 p-6 font-sans">
-    <div class="max-w-4xl mx-auto">
-      <div class="flex justify-between items-center mb-8">
-        <h1 class="text-3xl font-bold text-gray-800">Control de Caja</h1>
-        <router-link to="/admin/dashboard" class="px-4 py-2 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300">
-           Volver al Panel
-        </router-link>
-      </div>
+  <div class="cash-register min-h-screen bg-gray-50">
+    <!-- Header Estándar -->
+    <header class="bg-white shadow-sm border-b border-gray-100 mb-8">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-black text-gray-800">Control de Caja</h1>
+                <p class="text-sm text-gray-500">Gestiona aperturas, cortes y salidas de efectivo</p>
+            </div>
+            <router-link to="/admin/dashboard" class="flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl shadow-sm hover:bg-black transition-all font-bold w-fit">
+                <ArrowLeft class="w-5 h-5" />
+                Volver al Panel
+            </router-link>
+        </div>
+    </header>
 
+    <div class="max-w-4xl mx-auto px-6 pb-12">
       <div v-if="loading" class="text-center py-20">
-         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-800 mx-auto"></div>
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-800 mx-auto"></div>
       </div>
 
       <div v-else class="bg-white rounded-xl shadow-lg overflow-hidden">
@@ -101,12 +108,16 @@
                 </div>
                  <div class="mb-6">
                     <label class="block text-sm font-bold text-gray-700 mb-1">Categoría</label>
-                    <select v-model="expenseForm.category" class="w-full p-3 bg-gray-50 border rounded-lg font-bold text-gray-700">
-                        <option value="SUPPLIES">Insumos (Carne, Verdura)</option>
-                        <option value="OPERATIONAL">Operativo (Limpieza, Gas)</option>
-                        <option value="PAYROLL">Pago a Empleados</option>
-                        <option value="OTHER">Otros</option>
+                    <select v-model="expenseForm.category" required class="w-full p-4 bg-gray-50 border-none rounded-xl font-bold text-gray-700 focus:ring-2 focus:ring-red-500 outline-none">
+                        <option v-if="expenseCategories.length === 0" value="OTROS">Otros / Sin categorías definidas</option>
+                        <option v-for="cat in expenseCategories" :key="cat.id" :value="cat.name">
+                            {{ cat.name }}
+                        </option>
                     </select>
+                    <p v-if="expenseCategories.length === 0" class="text-xs text-gray-400 mt-2">
+                        Puedes crear tus propias categorías en el panel de 
+                        <router-link to="/admin/expense-categories" class="text-red-500 hover:underline">Mis Gastos</router-link>.
+                    </p>
                 </div>
                 <div class="flex gap-3">
                     <button type="button" @click="showExpenseModal = false" class="flex-1 py-3 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300">Cancelar</button>
@@ -143,15 +154,16 @@
                     <button type="submit" :disabled="isSubmitting" class="flex-1 py-3 bg-slate-800 text-white font-bold rounded-lg hover:bg-black">{{ isSubmitting ? 'Cerrando...' : 'Confirmar Cierre' }}</button>
                 </div>
             </form>
+            </div>
         </div>
     </div>
-  </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import axios from 'axios'
+import { ArrowLeft, Wallet, TrendingUp, Receipt, AlertCircle, CheckCircle } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 const companyId = auth.user?.company_id || 1
@@ -168,7 +180,24 @@ const actualCash = ref(null)
 // Modales
 const showExpenseModal = ref(false)
 const showCloseModal = ref(false)
-const expenseForm = ref({ amount: null, description: '', category: 'OTHER' })
+const expenseCategories = ref([])
+const expenseForm = ref({ amount: null, description: '', category: '' })
+
+const loadCategories = async () => {
+    try {
+        const { data } = await axios.get(`/api.php/expense-categories?company_id=${companyId}`)
+        expenseCategories.value = data
+        // Seleccionar la primera por defecto si existe
+        if (data.length > 0) {
+            expenseForm.value.category = data[0].name
+        } else {
+            expenseForm.value.category = 'OTROS'
+        }
+    } catch (e) {
+        console.error('Error cargando categorías de gastos:', e)
+        expenseForm.value.category = 'OTROS'
+    }
+}
 
 // Formateador de fechas
 const formatTime = (dateStr) => {
@@ -265,5 +294,6 @@ const closeShift = async () => {
 
 onMounted(() => {
     loadStatus()
+    loadCategories()
 })
 </script>

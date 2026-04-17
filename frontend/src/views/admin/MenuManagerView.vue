@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '../../stores/auth'
-import { Plus, Edit, Trash2, Save, X, Image as ImageIcon, Upload, Loader2, Star } from 'lucide-vue-next'
+import { Plus, Edit, Trash2, Save, X, Image as ImageIcon, Upload, Loader2, Star, ArrowLeft } from 'lucide-vue-next'
 import { useToast } from '../../composables/useToast'
 
 const toast = useToast()
@@ -209,13 +209,22 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-50 p-6">
-        <header class="max-w-6xl mx-auto flex justify-between items-center mb-4">
-            <h1 class="text-3xl font-bold text-gray-800">Gestor de Menú</h1>
-            <router-link to="/admin/dashboard" class="bg-gray-900 text-white px-4 py-2 rounded-lg shadow hover:bg-black font-medium">
-                Volver al Panel
-            </router-link>
+    <div class="min-h-screen bg-gray-50">
+        <!-- Header Estándar -->
+        <header class="bg-white shadow-sm border-b border-gray-100 mb-8">
+            <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl font-black text-gray-800">Gestor de Menú</h1>
+                    <p class="text-sm text-gray-500">Administra tus platillos, categorías y extras</p>
+                </div>
+                <router-link to="/admin/dashboard" class="flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl shadow-sm hover:bg-black transition-all font-bold w-fit">
+                    <ArrowLeft class="w-5 h-5" />
+                    Volver al Panel
+                </router-link>
+            </div>
         </header>
+
+        <div class="max-w-7xl mx-auto px-6 pb-12">
 
         <!-- Tabs -->
         <div class="max-w-6xl mx-auto border-b border-gray-200 mb-8 flex gap-8">
@@ -238,7 +247,7 @@ onMounted(() => {
             <div class="bg-white rounded-xl shadow-sm p-4 h-fit">
                 <div class="flex justify-between items-center mb-4 border-b pb-2">
                     <h2 class="font-bold text-lg">Categorías</h2>
-                    <button @click="openCategoryModal()" class="text-orange-600 hover:text-orange-800" title="Nueva Categoría">
+                    <button v-if="auth.user?.role !== 'KITCHEN'" @click="openCategoryModal()" class="text-orange-600 hover:text-orange-800" title="Nueva Categoría">
                         <Plus class="w-5 h-5"/>
                     </button>
                 </div>
@@ -246,7 +255,7 @@ onMounted(() => {
                 <ul class="space-y-2">
                     <li v-for="cat in categories" :key="cat.id" class="flex justify-between items-center p-2 rounded hover:bg-gray-50 group">
                         <span class="font-medium text-gray-700">{{ cat.name }}</span>
-                        <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div v-if="auth.user?.role !== 'KITCHEN'" class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button @click="openCategoryModal(cat)" class="text-blue-500 hover:text-blue-700"><Edit class="w-4 h-4"/></button>
                             <button @click="deleteCategory(cat.id)" class="text-red-500 hover:text-red-700"><Trash2 class="w-4 h-4"/></button>
                         </div>
@@ -259,7 +268,7 @@ onMounted(() => {
             <div class="md:col-span-3 bg-white rounded-xl shadow-sm p-6">
                 <div class="flex justify-between items-center mb-6 border-b pb-4">
                     <h2 class="font-bold text-2xl">Platillos</h2>
-                    <button @click="openProductModal()" class="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition">
+                    <button v-if="auth.user?.role !== 'KITCHEN'" @click="openProductModal()" class="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition">
                         <Plus class="w-5 h-5"/> Nuevo Platillo
                     </button>
                 </div>
@@ -286,7 +295,7 @@ onMounted(() => {
                             <p class="text-xs text-gray-500 mb-2">{{ prod.category_name }}</p>
                             <p class="text-sm text-gray-600 line-clamp-2 mb-4 flex-1">{{ prod.description }}</p>
                             
-                            <div class="flex justify-end gap-2 mt-auto pt-2 border-t">
+                            <div v-if="auth.user?.role !== 'KITCHEN'" class="flex justify-end gap-2 mt-auto pt-2 border-t">
                                 <button @click="openProductModal(prod)" class="p-2 text-blue-600 hover:bg-blue-50 rounded"><Edit class="w-4 h-4"/></button>
                                 <button @click="deleteProduct(prod.id)" class="p-2 text-red-600 hover:bg-red-50 rounded"><Trash2 class="w-4 h-4"/></button>
                             </div>
@@ -304,7 +313,7 @@ onMounted(() => {
              <div class="bg-white rounded-xl shadow-sm p-6">
                 <div class="flex justify-between items-center mb-6 border-b pb-4">
                     <h2 class="font-bold text-2xl">Grupos de Extras</h2>
-                    <button @click="openModifierModal()" class="flex items-center gap-2 bg-indigo-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-600 transition">
+                    <button v-if="auth.user?.role !== 'KITCHEN'" @click="openModifierModal()" class="flex items-center gap-2 bg-indigo-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-600 transition">
                         <Plus class="w-5 h-5"/> Nuevo Grupo
                     </button>
                 </div>
@@ -317,7 +326,7 @@ onMounted(() => {
                                 Mínimo seleccionar: {{ group.min_selection }} | Máximo: {{ group.max_selection }}
                              </p>
                          </div>
-                         <div class="flex gap-2">
+                         <div v-if="auth.user?.role !== 'KITCHEN'" class="flex gap-2">
                              <button @click="openModifierModal(group)" class="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100"><Edit class="w-5 h-5"/></button>
                              <button @click="deleteModifierGroup(group.id)" class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"><Trash2 class="w-5 h-5"/></button>
                          </div>
@@ -518,5 +527,6 @@ onMounted(() => {
             </div>
         </div>
 
+        </div>
     </div>
 </template>

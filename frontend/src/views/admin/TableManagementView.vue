@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '../../stores/auth'
-import { Plus, Edit, Trash2, Save, X, Utensils, Users, Hash } from 'lucide-vue-next'
+import { Plus, Edit, Trash2, Save, X, Utensils, Users, Hash, ArrowLeft } from 'lucide-vue-next'
 import { useToast } from '../../composables/useToast'
 
 const toast = useToast()
@@ -91,21 +91,28 @@ onMounted(fetchData)
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-50 p-6">
-        <header class="max-w-6xl mx-auto flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-3xl font-black text-gray-800">Gestión de Mesas</h1>
-                <p class="text-gray-500">Administra las mesas y su capacidad</p>
-            </div>
-            <div class="flex gap-3">
-                <router-link to="/admin/dashboard" class="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl shadow-sm hover:bg-gray-50 font-bold transition-all">
-                    Volver al Panel
-                </router-link>
-                <button @click="openTableModal()" class="bg-orange-500 text-white px-5 py-2 rounded-xl shadow-lg shadow-orange-200 hover:bg-orange-600 font-bold flex items-center gap-2 transition-all">
-                    <Plus class="w-5 h-5"/> Nueva Mesa
-                </button>
+    <div class="min-h-screen bg-gray-50">
+        <!-- Header Estándar -->
+        <header class="bg-white shadow-sm border-b border-gray-100 mb-8">
+            <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl font-black text-gray-800">Gestión de Mesas</h1>
+                    <p class="text-sm text-gray-500">Administra las mesas y su capacidad física</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <router-link to="/admin/dashboard" class="flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl shadow-sm hover:bg-black transition-all font-bold w-fit">
+                        <ArrowLeft class="w-5 h-5" />
+                        Volver al Panel
+                    </router-link>
+                    <button @click="openTableModal()" class="flex items-center gap-2 bg-orange-500 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-orange-600 shadow-lg shadow-orange-200 transition-all">
+                        <Plus class="w-5 h-5" />
+                        Nueva Mesa
+                    </button>
+                </div>
             </div>
         </header>
+
+        <div class="max-w-7xl mx-auto px-6 pb-12">
 
         <div v-if="loading" class="flex justify-center py-20">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
@@ -194,6 +201,7 @@ onMounted(fetchData)
                     <Save class="w-5 h-5" /> Guardar Mesa
                 </button>
             </div>
+        </div>
         </div>
     </div>
 </template>
