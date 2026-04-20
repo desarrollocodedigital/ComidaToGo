@@ -171,7 +171,14 @@ const goToCheckout = () => {
                     </router-link>
                     <div>
                         <h1 class="text-lg font-bold text-gray-900 leading-tight">{{ company.name }}</h1>
-                        <p class="text-xs text-green-600 font-medium" v-if="company.is_open">Abierto ahora</p>
+                        <div class="flex items-center gap-2">
+                            <p class="text-xs text-green-600 font-medium" v-if="company.is_open">Abierto ahora</p>
+                            <span v-if="company.is_open && Number(company.average_rating) > 0" class="text-gray-300">|</span>
+                            <div v-if="Number(company.average_rating) > 0" class="flex items-center gap-1">
+                                <Star class="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                                <span class="text-xs font-black text-gray-700">{{ Number(company.average_rating).toFixed(1) }}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">

@@ -9,7 +9,13 @@ class CashRegister extends BaseModel {
     protected $table = 'cash_register_shifts';
 
     public function getActiveShift($companyId) {
-        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE company_id = ? AND status = 'OPEN' LIMIT 1");
+        $stmt = $this->db->prepare("
+            SELECT s.*, u.name as opened_by_name 
+            FROM {$this->table} s 
+            LEFT JOIN users u ON s.opened_by_user_id = u.id 
+            WHERE s.company_id = ? AND s.status = 'OPEN' 
+            LIMIT 1
+        ");
         $stmt->execute([$companyId]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
@@ -28,7 +34,7 @@ class CashRegister extends BaseModel {
     }
 
     public function closeShift($shiftId, $userId, $actualEndingCash) {
-        $stmtShift = $this->db->prepare("SELECT starting_cash FROM {$this->table} WHERE id = ? AND status = 'OPEN'");
+        $stmtShift = $this->db->prepare("SELECT company_id, starting_cash FROM {$this->table} WHERE id = ? AND status = 'OPEN'");
         $stmtShift->execute([$shiftId]);
         $shift = $stmtShift->fetch(PDO::FETCH_ASSOC);
 
@@ -36,6 +42,7 @@ class CashRegister extends BaseModel {
             return ["success" => false, "message" => "Turno no encontrado o ya está cerrado."];
         }
 
+        $companyId = $shift['company_id'];
         $startingCash = (float)$shift['starting_cash'];
 
         $stmtSales = $this->db->prepare("SELECT SUM(total_amount) as total_cash_sales FROM orders WHERE cash_register_shift_id = ? AND payment_method = 'CASH' AND status IN ('COMPLETED', 'READY')");
@@ -54,6 +61,20 @@ class CashRegister extends BaseModel {
         $updateStmt = $this->db->prepare("UPDATE {$this->table} SET status = 'CLOSED', closed_by_user_id = ?, closed_at = CURRENT_TIMESTAMP, expected_ending_cash = ?, actual_ending_cash = ?, discrepancy_amount = ? WHERE id = ?");
         
         if ($updateStmt->execute([$userId, $expectedEndingCash, $actualEndingCash, $discrepancyAmount, $shiftId])) {
+            
+            // AUTOMATIZACIÓN: Registrar el faltante como un gasto si la discrepancia es negativa
+            if ($discrepancyAmount < 0) {
+                $absDiscrepancy = abs($discrepancyAmount);
+                $stmtAutoExp = $this->db->prepare("INSERT INTO expenses (company_id, cash_register_shift_id, user_id, amount, category, description) VALUES (?, ?, ?, ?, 'Faltante de Caja', ?)");
+                $stmtAutoExp->execute([
+                    $companyId,
+                    $shiftId,
+                    $userId,
+                    $absDiscrepancy,
+                    "Ajuste automático por faltante en el cierre del Turno #$shiftId"
+                ]);
+            }
+
             return [
                 "success" => true,
                 "summary" => [

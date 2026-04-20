@@ -30,6 +30,7 @@ use App\Controllers\UserController;
 use App\Controllers\UploadController;
 use App\Controllers\CartController;
 use App\Controllers\ExpenseCategoryController;
+use App\Controllers\ReviewController;
 
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $uri = explode('/', $uri);
@@ -113,6 +114,8 @@ if ($resource === 'auth') {
         $controller->getKitchenEfficiency();
     } elseif ($method === 'GET' && $param === 'customer-retention') {
         $controller->getCustomerRetention();
+    } elseif ($method === 'GET' && $param === 'ratings') {
+        $controller->getRatingStats();
     }
 } elseif ($resource === 'tables') {
     $controller = new TableController();
@@ -230,6 +233,11 @@ if ($resource === 'auth') {
     $controller = new CartController();
     if ($method === 'POST' && $param === 'sync') {
         $controller->sync();
+    }
+} elseif ($resource === 'reviews') {
+    $controller = new ReviewController();
+    if ($method === 'POST') {
+        $controller->create();
     }
 } else {
     http_response_code(404);

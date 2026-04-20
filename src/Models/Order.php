@@ -44,7 +44,8 @@ class Order extends BaseModel {
     }
 
     public function getOrdersByPhone($phone, $limit = 20) {
-        $sql = "SELECT o.*, c.name as company_name, c.logo_url as company_logo 
+        $sql = "SELECT o.*, c.name as company_name, c.logo_url as company_logo,
+                (SELECT COUNT(*) FROM reviews r WHERE r.order_id = o.id) as has_review
                 FROM {$this->table} o 
                 JOIN companies c ON o.company_id = c.id 
                 WHERE o.customer_phone = :phone 
@@ -57,6 +58,7 @@ class Order extends BaseModel {
 
         foreach ($orders as &$order) {
             $order['items'] = $this->getOrderItems($order['id']);
+            $order['has_review'] = (bool)$order['has_review'];
         }
 
         return $orders;
@@ -114,6 +116,11 @@ class Order extends BaseModel {
             $fields .= ", accepted_at = NOW()";
         } elseif ($data['status'] === 'READY') {
             $fields .= ", ready_at = NOW()";
+        }
+
+        if (array_key_exists('rejection_reason', $data)) {
+            $fields .= ", rejection_reason = :reason";
+            $params[':reason'] = $data['rejection_reason'];
         }
 
         $sql = "UPDATE {$this->table} SET $fields WHERE id = :id";

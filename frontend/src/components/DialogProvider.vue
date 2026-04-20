@@ -36,7 +36,17 @@ const dialog = useDialogStore()
           <!-- Text Content -->
           <div class="text-center">
             <h3 class="text-xl font-bold text-gray-900 mb-2">{{ dialog.title }}</h3>
-            <p class="text-gray-600 leading-relaxed">{{ dialog.message }}</p>
+            <p class="text-gray-600 leading-relaxed whitespace-pre-line" :class="{'mb-4': dialog.showInput}">{{ dialog.message }}</p>
+            
+            <div v-if="dialog.showInput" class="mt-4 px-2">
+              <textarea 
+                v-model="dialog.inputValue" 
+                :placeholder="dialog.inputPlaceholder"
+                rows="3"
+                class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:outline-none text-slate-700 font-medium text-sm transition-all resize-none"
+                autofocus
+              ></textarea>
+            </div>
           </div>
         </div>
 

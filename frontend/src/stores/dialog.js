@@ -8,6 +8,9 @@ export const useDialogStore = defineStore('dialog', () => {
     const type = ref('info') // info, confirm, warning, success
     const confirmText = ref('Aceptar')
     const cancelText = ref('Cancelar')
+    const showInput = ref(false)
+    const inputValue = ref('')
+    const inputPlaceholder = ref('')
     
     // Promesa para manejar la respuesta del usuario
     let resolvePromise = null
@@ -17,6 +20,13 @@ export const useDialogStore = defineStore('dialog', () => {
     }
 
     function confirm(options) {
+        return show({ ...options, type: 'confirm' })
+    }
+
+    function prompt(options) {
+        inputValue.value = ''
+        inputPlaceholder.value = options.placeholder || 'Escribe aquí...'
+        showInput.value = true
         return show({ ...options, type: 'confirm' })
     }
 
@@ -36,11 +46,14 @@ export const useDialogStore = defineStore('dialog', () => {
 
     function handleConfirm() {
         isOpen.value = false
-        if (resolvePromise) resolvePromise(true)
+        const result = showInput.value ? inputValue.value : true
+        showInput.value = false
+        if (resolvePromise) resolvePromise(result)
     }
 
     function handleCancel() {
         isOpen.value = false
+        showInput.value = false
         if (resolvePromise) resolvePromise(false)
     }
 
@@ -51,8 +64,12 @@ export const useDialogStore = defineStore('dialog', () => {
         type,
         confirmText,
         cancelText,
+        showInput,
+        inputValue,
+        inputPlaceholder,
         alert,
         confirm,
+        prompt,
         handleConfirm,
         handleCancel
     }

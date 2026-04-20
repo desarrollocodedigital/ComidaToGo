@@ -82,5 +82,17 @@ class AnalyticsController {
         $data = $this->model->getCustomerRetention($company_id, $period);
         echo json_encode($data);
     }
+
+    // GET /api.php/analytics/ratings?company_id=1
+    public function getRatingStats() {
+        $company_id = $_GET['company_id'] ?? null;
+        if (!$company_id) {
+            http_response_code(400);
+            echo json_encode(["message" => "Falta company_id"]);
+            return;
+        }
+        $data = $this->model->getRatingStats($company_id);
+        echo json_encode($data);
+    }
 }
 

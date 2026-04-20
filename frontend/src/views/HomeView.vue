@@ -2,7 +2,7 @@
 import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
-import { Search, MapPin, Clock, ShoppingBag, LogOut, LayoutDashboard, ChevronRight, X, UtensilsCrossed, Store } from 'lucide-vue-next'
+import { Search, MapPin, Clock, ShoppingBag, LogOut, LayoutDashboard, ChevronRight, X, UtensilsCrossed, Store, Star } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 
@@ -477,7 +477,13 @@ onMounted(() => {
                                     />
                                 </div>
 
-                                <h3 class="text-xl font-black text-gray-900 mb-1 group-hover:text-orange-600 transition-colors tracking-tight">{{ company.name }}</h3>
+                                 <div class="flex items-center justify-between mb-1">
+                                    <h3 class="text-xl font-black text-gray-900 group-hover:text-orange-600 transition-colors tracking-tight">{{ company.name }}</h3>
+                                    <div v-if="Number(company.average_rating) > 0" class="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-100">
+                                        <Star class="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+                                        <span class="text-xs font-black text-yellow-700">{{ Number(company.average_rating).toFixed(1) }}</span>
+                                    </div>
+                                </div>
                                 
                                 <!-- Badge Rows -->
                                 <div class="space-y-2 mb-4">
@@ -672,7 +678,13 @@ onMounted(() => {
                                     class="w-full h-full object-cover rounded-xl opacity-0 transition-opacity duration-500"
                                 />
                             </div>
-                            <h3 class="text-xl font-black text-gray-900 mb-1 group-hover:text-orange-600 transition-colors tracking-tight">{{ company.name }}</h3>
+                             <div class="flex items-center justify-between mb-1">
+                                <h3 class="text-xl font-black text-gray-900 group-hover:text-orange-600 transition-colors tracking-tight">{{ company.name }}</h3>
+                                <div v-if="Number(company.average_rating) > 0" class="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-100">
+                                    <Star class="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+                                    <span class="text-xs font-black text-yellow-700">{{ Number(company.average_rating).toFixed(1) }}</span>
+                                </div>
+                            </div>
                             <!-- Badge Rows -->
                             <div class="space-y-2 mb-4">
                                 <!-- Row 1: Category & Delivery -->
