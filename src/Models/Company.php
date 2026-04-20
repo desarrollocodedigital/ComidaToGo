@@ -144,7 +144,8 @@ class Company extends BaseModel {
                 is_open = :is_open,
                 schedule_config = :schedule_config,
                 category = :category,
-                state = :state
+                state = :state,
+                printer_width = :printer_width
                 WHERE id = :id";
         
         $stmt = $this->db->prepare($sql);
@@ -162,6 +163,7 @@ class Company extends BaseModel {
             ':schedule_config' => is_string($data['schedule_config']) ? $data['schedule_config'] : json_encode($data['schedule_config']),
             ':category' => $data['category'] ?? 'Restaurante',
             ':state' => $data['state'] ?? null,
+            ':printer_width' => $data['printer_width'] ?? '80',
             ':id' => $id
         ]);
     }

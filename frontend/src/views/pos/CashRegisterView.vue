@@ -45,7 +45,13 @@
             <!-- Status Header -->
             <div class="bg-green-500 p-6 text-white text-center">
               <h2 class="text-2xl font-bold">Turno Abierto</h2>
-              <p class="opacity-90 mt-1">ID Turno: #{{ shiftData.shift.id }} | Apertura: {{ formatTime(shiftData.shift.opened_at) }}</p>
+              <div class="flex items-center justify-center gap-4 mt-1 opacity-90 text-sm">
+                <span class="flex items-center gap-1 font-bold">
+                    <User class="w-4 h-4" /> {{ shiftData.shift.opened_by_name || 'Cajero' }}
+                </span>
+                <span class="opacity-50">|</span>
+                <span>Apertura: {{ formatTime(shiftData.shift.opened_at) }}</span>
+              </div>
             </div>
 
             <div class="p-8">
@@ -162,10 +168,14 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../../stores/auth'
+import { useDialogStore } from '../../stores/dialog'
+import { useToast } from '../../composables/useToast'
 import axios from 'axios'
-import { ArrowLeft, Wallet, TrendingUp, Receipt, AlertCircle, CheckCircle } from 'lucide-vue-next'
+import { ArrowLeft, Wallet, TrendingUp, Receipt, AlertCircle, CheckCircle, User } from 'lucide-vue-next'
 
 const auth = useAuthStore()
+const dialog = useDialogStore()
+const toast = useToast()
 const companyId = auth.user?.company_id || 1
 
 // Estado
@@ -233,8 +243,9 @@ const openShift = async () => {
         })
         startingCash.value = null
         await loadStatus() // Refrescar UI a abierta
+        toast.success("¡Caja abierta exitosamente!")
     } catch (e) {
-        alert("Error: " + (e.response?.data?.message || e.message))
+        toast.error("Error al abrir caja: " + (e.response?.data?.message || e.message))
     } finally {
         isSubmitting.value = false
     }
@@ -253,9 +264,10 @@ const recordExpense = async () => {
         })
         showExpenseModal.value = false
         expenseForm.value = { amount: null, description: '', category: 'OTHER' }
+        toast.success("Salida de efectivo registrada")
         await loadStatus() // Refresca métricas live
     } catch (e) {
-         alert("Error: " + (e.response?.data?.message || e.message))
+         toast.error("Error: " + (e.response?.data?.message || e.message))
     } finally {
          isSubmitting.value = false
     }
@@ -267,9 +279,14 @@ const closeShift = async () => {
     // Si hay faltante, pide justificación mínima visualmente, o avisa
     const diff = actualCash.value - shiftData.value.metrics.expected_cash
     if (diff < 0) {
-        if(!confirm(`⚠️ ADVERTENCIA: Te faltan $${Math.abs(diff).toFixed(2)} en caja. ¿Estás seguro de cerrar el turno de todos modos?`)) {
-            return
-        }
+        const confirmed = await dialog.confirm({
+            title: '¿Confirmar con faltante?',
+            message: `⚠️ ADVERTENCIA: Te faltan $${Math.abs(diff).toFixed(2)} en caja.\n\n¿Estás seguro de cerrar el turno de todos modos?`,
+            type: 'warning',
+            confirmText: 'Cerrar con faltante',
+            cancelText: 'Volver a contar'
+        })
+        if (!confirmed) return
     }
 
     isSubmitting.value = true
@@ -280,13 +297,29 @@ const closeShift = async () => {
             actual_ending_cash: actualCash.value
         })
         
-        alert(`Corte exitoso.\nResumen:\nVentas: $${res.data.summary.cash_sales}\nGastos: -$${res.data.summary.expenses}\nDiferencia (Faltante/Sobrante): $${res.data.summary.discrepancy_amount}`)
+        const summary = res.data.summary
+        const discrepancyText = summary.discrepancy_amount < 0 
+            ? `Faltante: -$${Math.abs(summary.discrepancy_amount).toFixed(2)}`
+            : (summary.discrepancy_amount > 0 ? `Sobrante: +$${summary.discrepancy_amount.toFixed(2)}` : 'Caja cuadrada')
+
+        await dialog.confirm({
+            title: '¡Corte Exitoso!',
+            message: `Resumen del Turno:\n\n` +
+                     `💰 Fondo Inicial: $${Number(summary.starting_cash).toFixed(2)}\n` +
+                     `📈 Ventas Totales: $${Number(summary.cash_sales).toFixed(2)}\n` +
+                     `📉 Gastos/Salidas: -$${Number(summary.expenses).toFixed(2)}\n\n` +
+                     `🧾 Efectivo Final: $${Number(summary.actual_ending_cash).toFixed(2)}\n` +
+                     `📊 ${discrepancyText}`,
+            type: 'success',
+            confirmText: 'Finalizar',
+            cancelText: null // Solo botón de aceptar
+        })
         
         showCloseModal.value = false
         actualCash.value = null
         await loadStatus() // Refrescar UI a cerrada
     } catch (e) {
-         alert("Error: " + (e.response?.data?.message || e.message))
+         toast.error("Error al cerrar: " + (e.response?.data?.message || e.message))
     } finally {
          isSubmitting.value = false
     }

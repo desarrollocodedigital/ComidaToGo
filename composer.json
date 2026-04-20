@@ -3,7 +3,8 @@
     "description": "Plataforma SaaS + Marketplace para restaurantes",
     "type": "project",
     "require": {
-        "php": ">=8.0.0"
+        "php": ">=8.0.0",
+        "google/apiclient": "^2.0"
     },
     "autoload": {
         "psr-4": {

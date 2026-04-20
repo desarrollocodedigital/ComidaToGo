@@ -31,7 +31,15 @@ const fetchData = async () => {
             axios.get(`/api.php/modifiers?company_id=${companyId}`)
         ])
         categories.value = catsRes.data
-        products.value = prodsRes.data
+        
+        // Formatear rutas de imágenes para evitar fallos por rutas relativas en /admin
+        products.value = prodsRes.data.map(p => {
+            if (p.image_url && !p.image_url.startsWith('http') && !p.image_url.startsWith('/')) {
+                p.image_url = '/' + p.image_url
+            }
+            return p
+        })
+        
         modifiers.value = modsRes.data
     } catch (e) {
         console.error("Error fetching menu data", e)
@@ -130,20 +138,23 @@ const handleFileUpload = async (event) => {
     const file = event.target.files[0]
     if (!file) return
 
+    // 1. Mostrar previsualización local instantánea en la variable del modal
+    const localPreview = URL.createObjectURL(file)
+    productModal.value.data.image_url = localPreview
+
     const formData = new FormData()
     formData.append('image', file)
     
-    // Enviar URL antigua para que el servidor la borre
-    if (productModal.value.data.image_url) {
-        formData.append('old_url', productModal.value.data.image_url)
-    }
-
     uploadingImage.value = true
     try {
         const res = await axios.post('api.php/upload', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         })
-        productModal.value.data.image_url = res.data.url
+        let serverUrl = res.data.url
+        if (serverUrl && !serverUrl.startsWith('http') && !serverUrl.startsWith('/')) {
+            serverUrl = '/' + serverUrl
+        }
+        productModal.value.data.image_url = serverUrl
         toast.success("Imagen cargada correctamente")
     } catch (e) {
         toast.error(e.response?.data?.message || "Error al subir la imagen")
@@ -413,30 +424,30 @@ onMounted(() => {
                                         class="hidden"
                                     >
                                     
-                                    <div v-if="uploadingImage" class="flex flex-col items-center">
+                                    <!-- Overlay de carga -->
+                                    <div v-if="uploadingImage" class="absolute inset-0 bg-white/60 backdrop-blur-sm flex flex-col items-center justify-center z-10 transition-all">
                                         <Loader2 class="w-8 h-8 text-orange-500 animate-spin mb-2" />
-                                        <p class="text-sm font-medium text-gray-500">Subiendo...</p>
+                                        <p class="text-sm font-bold text-orange-600">Subiendo...</p>
                                     </div>
                                     
-                                    <template v-else>
-                                        <img 
-                                            v-if="productModal.data.image_url" 
-                                            :src="productModal.data.image_url" 
-                                            class="w-full h-full object-cover group-hover:opacity-75 transition-opacity"
-                                        >
-                                        <div v-else class="flex flex-col items-center text-gray-400 group-hover:text-orange-500">
-                                            <Upload class="w-10 h-10 mb-2" />
-                                            <p class="font-bold">Haz clic para subir imagen</p>
-                                            <p class="text-xs">JPG, PNG permitidos</p>
+                                    <!-- Contenido de Imagen -->
+                                    <img 
+                                        v-if="productModal.data.image_url" 
+                                        :src="productModal.data.image_url" 
+                                        class="w-full h-full object-cover group-hover:opacity-75 transition-opacity"
+                                    >
+                                    <div v-else class="flex flex-col items-center text-gray-400 group-hover:text-orange-500">
+                                        <Upload class="w-10 h-10 mb-2" />
+                                        <p class="font-bold text-sm text-center px-4 leading-tight">Haz clic para subir o arrastrar imagen</p>
+                                        <p class="text-[10px] uppercase tracking-wider mt-1 opacity-60">JPG, PNG permitidos</p>
+                                    </div>
+                                    
+                                    <!-- Overlay de cambio (Hover) -->
+                                    <div v-if="productModal.data.image_url && !uploadingImage" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div class="bg-white/20 backdrop-blur-md px-4 py-2 rounded-full text-white font-bold text-sm border border-white/30">
+                                            Cambiar Imagen
                                         </div>
-                                        
-                                        <!-- Overlay de cambio -->
-                                        <div v-if="productModal.data.image_url" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <div class="bg-white/20 backdrop-blur-md px-4 py-2 rounded-full text-white font-bold text-sm border border-white/30">
-                                                Cambiar Imagen
-                                            </div>
-                                        </div>
-                                    </template>
+                                    </div>
                                 </div>
                                 
                                 <div class="w-full">

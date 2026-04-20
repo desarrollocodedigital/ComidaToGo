@@ -67,5 +67,34 @@ class AuthController {
             echo json_encode(["message" => "Internal Server Error", "error" => $e->getMessage()]);
         }
     }
+
+    public function googleLogin() {
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $credential = $input['credential'] ?? null;
+
+            if (!$credential) {
+                http_response_code(400);
+                echo json_encode(["message" => "Falta el token de Google"]);
+                return;
+            }
+
+            $result = $this->model->handleGoogleLogin($credential);
+
+            if ($result['success']) {
+                echo json_encode([
+                    "message" => "Login con Google exitoso",
+                    "user" => $result['user'],
+                    "token" => $result['token'] ?? null
+                ]);
+            } else {
+                http_response_code(401);
+                echo json_encode(["message" => $result['message']]);
+            }
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo json_encode(["message" => "Error en autenticación Google", "error" => $e->getMessage()]);
+        }
+    }
 }
 

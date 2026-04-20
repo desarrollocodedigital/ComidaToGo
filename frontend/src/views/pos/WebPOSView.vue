@@ -235,8 +235,10 @@
                                     </div>
                                 </div>
                             </div>
-                            <div :class="['px-4 py-2 rounded-2xl text-sm font-black flex items-center gap-2 shadow-sm border border-white/50', getTimerColor(order.created_at)]">
-                                <Clock class="w-4 h-4" /> {{ formatElapsed(order.created_at) }}
+                            <div class="flex items-center gap-2">
+                                <div :class="['px-4 py-2 rounded-2xl text-sm font-black flex items-center gap-2 shadow-sm border border-white/50', getTimerColor(order.created_at)]">
+                                    <Clock class="w-4 h-4" /> {{ formatElapsed(order.created_at) }}
+                                </div>
                             </div>
                         </div>
 
@@ -311,6 +313,9 @@
                         </div>
                     </div>
                     <div class="flex flex-wrap gap-2 w-full md:w-auto justify-end">
+                        <button @click="printTicket(order)" class="p-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-all shadow-sm" title="Imprimir Ticket">
+                            <Printer class="w-5 h-5" />
+                        </button>
                         <button @click="chargeWebOrder(order, 'CASH')" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-green-500 text-white font-black py-2.5 px-5 rounded-xl hover:bg-green-600 shadow-lg shadow-green-100 transition-all text-xs group">
                             <span class="group-hover:scale-110 transition-transform">💵</span> Efectivo
                         </button>
@@ -359,8 +364,10 @@
                                     </div>
                                 </div>
                             </div>
-                            <div :class="['px-4 py-2 rounded-2xl text-sm font-black flex items-center gap-2 shadow-sm border border-white/50', getTimerColor(order.created_at)]">
-                                <Clock class="w-4 h-4" /> {{ formatElapsed(order.created_at) }}
+                            <div class="flex items-center gap-2">
+                                <div :class="['px-4 py-2 rounded-2xl text-sm font-black flex items-center gap-2 shadow-sm border border-white/50', getTimerColor(order.created_at)]">
+                                    <Clock class="w-4 h-4" /> {{ formatElapsed(order.created_at) }}
+                                </div>
                             </div>
                         </div>
 
@@ -447,7 +454,10 @@
                                 <span class="text-[10px] font-black text-green-700 uppercase block leading-none mb-1">Total a Cobrar</span>
                                 <span class="text-2xl font-black text-slate-800">${{ Number(order.total_amount).toFixed(2) }}</span>
                             </div>
-                            <div class="grid grid-cols-3 gap-2">
+                            <div class="grid grid-cols-4 gap-2">
+                                <button @click="printTicket(order)" class="flex items-center justify-center bg-white border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-all shadow-sm" title="Imprimir Ticket">
+                                    <Printer class="w-5 h-5" />
+                                </button>
                                 <button @click="processCharge(order, 'CASH')" class="flex items-center justify-center gap-2 bg-green-500 text-white font-black py-2.5 rounded-xl hover:bg-green-600 shadow-lg shadow-green-100 transition-all text-[10px] group">
                                     <span class="text-sm group-hover:scale-110 transition-transform">💵</span> Efectivo
                                 </button>
@@ -614,6 +624,171 @@
             </div>
         </div>
     </div>
+    
+    <!-- MODAL DE PAGO EN EFECTIVO / CALCULADORA DE CAMBIO -->
+    <div v-if="isPaymentModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div @click="isPaymentModalOpen = false" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+        <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden relative flex flex-col transform transition-all animate-in fade-in zoom-in duration-200">
+            <!-- Header -->
+            <div class="bg-slate-800 px-6 py-4 flex justify-between items-center text-white">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-green-500 rounded-lg">
+                        <span class="text-xl">💵</span>
+                    </div>
+                    <h2 class="text-xl font-black">Cobro en Efectivo</h2>
+                </div>
+                <button @click="isPaymentModalOpen = false" class="p-2 hover:bg-slate-700 rounded-full transition-colors">
+                    <XCircle class="w-6 h-6 text-slate-400" />
+                </button>
+            </div>
+
+            <div class="flex flex-col md:flex-row h-[450px]">
+                <!-- Teclado y Atajos -->
+                <div class="w-full md:w-3/5 p-6 border-r border-slate-100 flex flex-col">
+                    <label class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Pagos Rápidos</label>
+                    <div class="grid grid-cols-3 gap-3 mb-6">
+                        <button 
+                            v-for="amount in fastAmounts" 
+                            :key="amount"
+                            @click="setFastAmount(amount)"
+                            class="py-4 bg-slate-50 border border-slate-200 rounded-2xl font-black text-slate-700 hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all shadow-sm"
+                        >
+                            ${{ amount }}
+                        </button>
+                        <button 
+                            @click="setExactPayment"
+                            class="py-4 bg-orange-50 border border-orange-200 rounded-2xl font-black text-orange-600 hover:bg-orange-500 hover:text-white transition-all shadow-sm flex flex-col items-center justify-center leading-tight"
+                        >
+                            <span class="text-[10px] uppercase">Exacto</span>
+                            ${{ Number(orderToCharge?.total_amount).toFixed(0) }}
+                        </button>
+                    </div>
+
+                    <label class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Monto Personalizado</label>
+                    <div class="relative mb-auto">
+                        <span class="absolute left-5 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-400">$</span>
+                        <input 
+                            v-model.number="amountReceived" 
+                            type="number" 
+                            autofocus
+                            class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-6 pl-12 pr-6 text-4xl font-black text-slate-800 focus:outline-none focus:border-green-500 transition-all"
+                            placeholder="0.00"
+                        >
+                    </div>
+                </div>
+
+                <!-- Resumen y Cambio -->
+                <div class="w-full md:w-2/5 p-6 bg-slate-50/50 flex flex-col">
+                    <div class="space-y-6 mb-auto">
+                        <div class="flex justify-between items-center pb-4 border-b border-slate-200">
+                            <span class="font-bold text-slate-500 uppercase text-xs tracking-widest">Total Orden</span>
+                            <span class="text-xl font-black text-slate-800">${{ Number(orderToCharge?.total_amount).toFixed(2) }}</span>
+                        </div>
+                        <div class="flex justify-between items-center pb-4 border-b border-slate-200">
+                            <span class="font-bold text-slate-500 uppercase text-xs tracking-widest">Recibido</span>
+                            <span class="text-xl font-black text-blue-600">${{ Number(amountReceived || 0).toFixed(2) }}</span>
+                        </div>
+                        
+                        <div class="pt-4 text-center">
+                            <span class="font-bold text-slate-400 uppercase text-[10px] tracking-widest block mb-1">Cambio a Entregar</span>
+                            <div :class="['text-5xl font-black transition-colors', cashChange > 0 ? 'text-green-600' : 'text-slate-300']">
+                                ${{ cashChange.toFixed(2) }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <button 
+                        @click="completeCashPayment"
+                        :disabled="!canCompletePayment"
+                        :class="[
+                            'w-full py-5 rounded-2xl font-black text-xl shadow-xl transition-all transform flex items-center justify-center gap-2',
+                            canCompletePayment 
+                                ? 'bg-green-500 text-white hover:bg-green-600 hover:-translate-y-1 active:scale-95' 
+                                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        ]"
+                    >
+                        <CheckCircle2 class="w-6 h-6" /> Completar Pago
+                    </button>
+                    <p v-if="!canCompletePayment && amountReceived > 0" class="text-center mt-3 text-red-500 text-xs font-bold animate-pulse">
+                        Monto insuficiente
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TICKET DE IMPRESIÓN (OCULTO EN PANTALLA) -->
+    <div v-if="orderToPrint" id="print-ticket" :class="['print-only', printerWidth === '58' ? 'w-58' : 'w-80']">
+        <div class="ticket-header">
+            <div class="business-title-row">
+                <img v-if="currentCompany?.logo_url" :src="currentCompany.logo_url" class="ticket-logo-small" />
+                <h1 class="business-name">{{ currentCompany?.name || 'ComidaToGo' }}</h1>
+            </div>
+            <p class="business-info" v-if="currentCompany?.whatsapp_number">Tel: {{ currentCompany.whatsapp_number }}</p>
+        </div>
+
+        <div class="ticket-divider">*******************************</div>
+
+        <div class="ticket-info">
+            <p><strong>FOLIO: #{{ orderToPrint.id }}</strong></p>
+            <p>Fecha: {{ new Date(orderToPrint.created_at).toLocaleString() }}</p>
+            <p>Cliente: {{ orderToPrint.customer_name }}</p>
+            <p v-if="orderToPrint.customer_phone">Tel: {{ orderToPrint.customer_phone }}</p>
+            <p>Tipo: {{ orderToPrint.order_type === 'DELIVERY' ? 'DOMICILIO' : (orderToPrint.order_type === 'PICKUP' ? 'RECOGER' : 'LOCAL') }}</p>
+            <p v-if="orderToPrint.table_number">Mesa: {{ orderToPrint.table_number }}</p>
+            
+            <!-- Dirección para domicilios -->
+            <div v-if="orderToPrint.order_type === 'DELIVERY' && orderToPrint.customer_address" class="delivery-address-box">
+                <p class="address-label">DIRECCIÓN DE ENTREGA:</p>
+                <p class="address-text">{{ orderToPrint.customer_address }}</p>
+                <div v-if="orderToPrint.customer_references" class="address-refs">
+                    <strong>Ref:</strong> {{ orderToPrint.customer_references }}
+                </div>
+            </div>
+        </div>
+
+        <div class="ticket-divider">-------------------------------</div>
+
+        <table class="ticket-table">
+            <thead>
+                <tr>
+                    <th class="qty">Cant</th>
+                    <th class="desc">Producto</th>
+                    <th class="price">Precio</th>
+                    <th class="total">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <template v-for="item in orderToPrint.items" :key="item.id">
+                    <tr class="item-row">
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.product_name }}</td>
+                        <td>${{ Number(item.unit_price).toFixed(2) }}</td>
+                        <td>${{ (item.quantity * item.unit_price).toFixed(2) }}</td>
+                    </tr>
+                    <tr v-if="item.modifiers" class="modifier-row">
+                        <td></td>
+                        <td colspan="3" class="modifiers-text italic">+ {{ item.modifiers }}</td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+
+        <div class="ticket-divider">-------------------------------</div>
+
+        <div class="ticket-total">
+            <div class="total-row large">
+                <span>TOTAL:</span>
+                <span>${{ Number(orderToPrint.total_amount).toFixed(2) }}</span>
+            </div>
+        </div>
+
+        <div class="ticket-footer">
+            <p>¡Gracias por su preferencia!</p>
+            <p class="promo-text">Buscanos en ComidaToGo.com.mx</p>
+            <p>{{ currentCompany?.name }}</p>
+        </div>
+    </div>
   </div>
 </template>
 
@@ -623,7 +798,7 @@ import { useAuthStore } from '../../stores/auth'
 import axios from 'axios'
 import { 
   Truck, ShoppingBag, Utensils, Phone, MapPin, Clock, 
-  ArrowRight, XCircle, CheckCircle2, User, Hash, Plus, Minus
+  ArrowRight, XCircle, CheckCircle2, User, Hash, Plus, Minus, Printer
 } from 'lucide-vue-next'
 import ProductModal from '../../components/ProductModal.vue'
 import { useToast } from '../../composables/useToast'
@@ -645,7 +820,30 @@ const categories = ref([])
 const products = ref([])
 const tables = ref([])
 const webOrders = ref([])
+const currentCompany = ref(null)
 const activeShiftId = ref(null)
+const isPaymentModalOpen = ref(false)
+const orderToCharge = ref(null)
+const amountReceived = ref(0)
+const fastAmounts = [20, 50, 100, 200, 500]
+
+// Configuración Impresora
+const printerWidth = computed(() => {
+    return currentCompany.value?.printer_width || '80'
+})
+const orderToPrint = ref(null)
+
+const cashChange = computed(() => {
+    if (!orderToCharge.value) return 0
+    const total = parseFloat(orderToCharge.value.total_amount)
+    const received = parseFloat(amountReceived.value) || 0
+    return Math.max(0, received - total)
+})
+
+const canCompletePayment = computed(() => {
+    if (!orderToCharge.value) return false
+    return amountReceived.value >= parseFloat(orderToCharge.value.total_amount)
+})
 
 // Timer config
 const timerGreen = ref(10)
@@ -823,6 +1021,7 @@ const loadInitialData = async () => {
     loading.value = true
     try {
         const resTenant = await axios.get(`/api.php/tenant/${companyId}`)
+        currentCompany.value = resTenant.data
         if(resTenant.data.menu) {
             categories.value = resTenant.data.menu
             let allProds = []
@@ -926,32 +1125,46 @@ const acceptOrder = async (orderId) => {
 }
 
 const rejectOrder = async (orderId) => {
-    const confirmed = await dialog.confirm({
+    const reason = await dialog.prompt({
         title: '¿Rechazar Pedido?',
-        message: 'Esta acción no se puede deshacer y el cliente será notificado.',
-        confirmText: 'Sí, Rechazar',
-        cancelText: 'No, Volver'
+        message: 'Por favor, escribe el motivo del rechazo para notificar al cliente.',
+        placeholder: 'Ej. Se agotaron los insumos / Fuera de zona...',
+        confirmText: 'Rechazar Pedido',
+        cancelText: 'Volver'
     })
-    if (!confirmed) return
+    
+    if (!reason || reason.trim() === '') return
     
     try {
-        await axios.put(`/api.php/orders/${orderId}`, { status: 'REJECTED' })
+        await axios.put(`/api.php/orders/${orderId}`, { 
+            status: 'REJECTED',
+            rejection_reason: reason
+        })
+        toast.success(`Pedido #${orderId} rechazado`)
         await refreshOrders()
-    } catch (e) { toast.error("Error al aceptar pedido") }
+    } catch (e) { toast.error("Error al rechazar pedido") }
 }
 
 // Cobrar pedido web listo
 const chargeWebOrder = async (order, method) => {
-    if (method === 'CASH' && !activeShiftId.value) {
-        toast.error("¡Abre la caja primero para cobrar en efectivo!")
+    if (method === 'CASH') {
+        if (!activeShiftId.value) {
+            toast.error("¡Abre la caja primero para cobrar en efectivo!")
+            return
+        }
+        orderToCharge.value = order
+        amountReceived.value = 0
+        isPaymentModalOpen.value = true
         return
     }
+
     const confirmed = await dialog.confirm({
         title: 'Confirmar Cobro',
         message: `¿Cobrar pedido #${order.id} por $${Number(order.total_amount).toFixed(2)} con ${method === 'CASH' ? 'Efectivo' : 'Tarjeta'}?`,
         confirmText: 'Cobrar Ahora',
         cancelText: 'Cancelar'
     })
+
     if (!confirmed) return
     
     try {
@@ -963,6 +1176,34 @@ const chargeWebOrder = async (order, method) => {
         toast.success(`Pedido #${order.id} cobrado ($${Number(order.total_amount).toFixed(2)} - ${method})`)
         await refreshOrders()
     } catch (e) { toast.error("Error al cobrar pedido") }
+}
+
+const completeCashPayment = async () => {
+    if (!canCompletePayment.value) return
+    
+    try {
+        const order = orderToCharge.value
+        await axios.put(`/api.php/orders/${order.id}`, {
+            status: 'COMPLETED',
+            payment_method: 'CASH',
+            cash_register_shift_id: activeShiftId.value
+        })
+        toast.success(`Pago completado. Cambio: $${cashChange.value.toFixed(2)}`)
+        isPaymentModalOpen.value = false
+        await refreshOrders()
+    } catch (e) { 
+        toast.error("Error al procesar el pago")
+    }
+}
+
+const setFastAmount = (amount) => {
+    amountReceived.value = amount
+}
+
+const setExactPayment = () => {
+    if (orderToCharge.value) {
+        amountReceived.value = parseFloat(orderToCharge.value.total_amount)
+    }
 }
 
 // Enviar pedido POS directamente a cocina
@@ -1031,6 +1272,16 @@ const processCharge = async (order, method) => {
     await chargeWebOrder(order, method)
 }
 
+const printTicket = async (order) => {
+    orderToPrint.value = order
+    // Esperar a que Vue renderice el template oculto
+    setTimeout(() => {
+        window.print()
+        // Limpiamos después de imprimir (o cancelar)
+        setTimeout(() => { orderToPrint.value = null }, 500)
+    }, 100)
+}
+
 
 onMounted(async () => {
     await loadInitialData()
@@ -1048,4 +1299,88 @@ onUnmounted(() => {
 <style scoped>
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ESTILOS DE IMPRESIÓN SE MOVIERON A BLOQUE GLOBAL ABAJO */
+</style>
+
+<style>
+/* ESTILOS GLOBALES PARA IMPRESIÓN (SIN SCOPED) */
+@media screen {
+    .print-only { 
+        display: none !important; 
+        visibility: hidden !important;
+        position: fixed !important;
+        top: -10000px !important;
+    }
+}
+
+@media print {
+    @page {
+        margin: 0 !important;
+        size: auto;
+    }
+
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+    }
+
+    body * { 
+        visibility: hidden !important; 
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    #print-ticket, #print-ticket * { 
+        visibility: visible !important; 
+    }
+    
+    #print-ticket {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        margin: 0 !important;
+        padding: 4mm !important;
+        color: black !important;
+        background: white !important;
+        font-family: 'Courier New', Courier, monospace !important;
+        font-size: 12px !important;
+        line-height: 1.2 !important;
+        display: block !important;
+        box-sizing: border-box !important;
+    }
+    
+    .w-80 { width: 80mm !important; max-width: 80mm !important; }
+    .w-58 { width: 58mm !important; max-width: 58mm !important; }
+    
+    .ticket-header { text-align: center; margin-bottom: 4mm; }
+    .business-title-row { display: flex; align-items: center; justify-content: center; gap: 2mm; margin-bottom: 1mm; }
+    .ticket-logo-small { width: 8mm; height: 8mm; object-fit: contain; filter: grayscale(100%) contrast(1.5); }
+    .business-name { font-size: 16px !important; font-weight: 900; margin: 0; text-transform: uppercase; line-height: 1; }
+    .business-address, .business-info { font-size: 11px !important; margin: 0; line-height: 1.1; }
+    
+    .ticket-divider { text-align: center; margin: 2mm 0; letter-spacing: -1px; }
+    .ticket-info { font-size: 11px !important; }
+    .ticket-info p { margin: 0.5mm 0; }
+    
+    .ticket-table { width: 100%; border-collapse: collapse; margin: 2mm 0; table-layout: fixed; }
+    .ticket-table th { text-align: left; border-bottom: 1px dashed black; font-size: 10px !important; padding-bottom: 1mm; }
+    .ticket-table td { font-size: 12px !important; padding: 1.5mm 0; vertical-align: top; word-wrap: break-word; }
+    
+    .qty { width: 10%; }
+    .desc { width: 40%; }
+    .price { width: 25%; text-align: right; }
+    .total { width: 25%; text-align: right; }
+    
+    .modifier-row td { font-size: 10px !important; padding-top: 0; padding-bottom: 1.5mm; color: #333 !important; }
+    
+    .ticket-total { margin-top: 4mm; text-align: right; border-top: 1px solid black; padding-top: 2mm; }
+    .total-row { display: flex; justify-content: space-between; font-weight: 900; }
+    .total-row.large { font-size: 20px !important; margin-bottom: 1mm; }
+    .payment-method { font-size: 11px !important; font-style: italic; }
+    .promo-text { font-weight: 900; color: black; margin: 1mm 0; border: 1px solid black; padding: 1mm; display: inline-block; }
+    
+    .ticket-footer { text-align: center; margin-top: 2mm; font-size: 11px !important; border-top: 1px dashed #666; padding-top: 4mm; padding-bottom: 10mm; }
+}
 </style>

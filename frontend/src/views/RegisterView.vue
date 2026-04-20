@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { Store, User } from 'lucide-vue-next'
 
@@ -14,6 +14,36 @@ const companySlug = ref('')
 
 const loading = ref(false)
 const error = ref('')
+
+const handleGoogleCallback = async (response) => {
+    loading.value = true
+    error.value = ''
+    const res = await auth.loginWithGoogle(response.credential)
+    if (!res.success) {
+        error.value = res.message || 'Error al registrar con Google'
+    }
+    loading.value = false
+}
+
+onMounted(() => {
+    /* global google */
+    const initGoogle = () => {
+        if (typeof google !== 'undefined') {
+            google.accounts.id.initialize({
+                client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+                callback: handleGoogleCallback
+            });
+            google.accounts.id.renderButton(
+                document.getElementById("googleButtonRegister"),
+                { theme: "outline", size: "large", width: "100%", text: "signup_with" }
+            );
+        } else {
+            // Reintentar en 500ms si la librería aún no carga
+            setTimeout(initGoogle, 500);
+        }
+    }
+    initGoogle();
+})
 
 const doRegister = async () => {
     error.value = ''
@@ -119,6 +149,18 @@ const generateSlug = () => {
                     {{ loading ? 'Creando cuenta...' : 'Registrarse' }}
                 </button>
             </form>
+
+            <div class="relative my-8">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-100"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-4 bg-white text-gray-400">O regístrate con</span>
+                </div>
+            </div>
+
+            <!-- Google Signup Button Container -->
+            <div id="googleButtonRegister" class="w-full h-[40px] mb-6"></div>
 
             <div class="text-center mt-6">
                 <p class="text-sm text-gray-600">

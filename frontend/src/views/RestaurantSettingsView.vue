@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from '../composables/useToast'
-import { Save, MapPin, Image, Store, Clock, ArrowLeft } from 'lucide-vue-next'
+import { Save, MapPin, Image, Store, Clock, ArrowLeft, Printer } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 const toast = useToast()
@@ -55,6 +55,7 @@ const fetchCompany = async () => {
         // Valores por defecto para nuevos campos
         if (!company.value.timezone) company.value.timezone = 'America/Mexico_City'
         if (!company.value.status_mode) company.value.status_mode = 'AUTO'
+        if (!company.value.printer_width) company.value.printer_width = '80'
         
     } catch (e) {
         console.error(e)
@@ -325,7 +326,36 @@ onMounted(() => {
                 </div>
             </div>
 
-            <!-- Columna 3: Timer Semáforo -->
+            <!-- Columna 3: Configuración de Impresión (POS) -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm space-y-6 md:col-span-2">
+                <div class="flex items-center gap-2 text-xl font-bold text-gray-800 pb-4 border-b">
+                    <Printer class="w-6 h-6 text-blue-500" /> Configuración de Impresión (POS)
+                </div>
+                <div class="flex flex-col md:flex-row gap-8 items-center bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
+                    <div class="flex-1">
+                        <h3 class="font-bold text-gray-800 mb-1">Ancho del Papel Térmico</h3>
+                        <p class="text-xs text-gray-500">Selecciona el tamaño de papel que utiliza tu impresora de tickets.</p>
+                    </div>
+                    <div class="flex bg-white p-1 rounded-xl shadow-sm border border-blue-200">
+                        <button 
+                            @click="company.printer_width = '58'"
+                            :class="company.printer_width === '58' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'"
+                            class="px-6 py-2.5 rounded-lg text-sm font-black transition-all"
+                        >
+                            58mm
+                        </button>
+                        <button 
+                            @click="company.printer_width = '80'"
+                            :class="company.printer_width === '80' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'"
+                            class="px-6 py-2.5 rounded-lg text-sm font-black transition-all"
+                        >
+                            80mm
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna 4: Timer Semáforo -->
             <div class="bg-white p-6 rounded-2xl shadow-sm space-y-6 md:col-span-2">
                 <div class="flex items-center gap-2 text-xl font-bold text-gray-800 pb-4 border-b">
                     ⏱ Semáforo de Tiempos (Cocina)

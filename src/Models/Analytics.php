@@ -21,7 +21,7 @@ class Analytics extends BaseModel {
                 break;
             case 'month': 
                 $dateCondition = "YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())"; 
-                $prevDateCondition = "YEAR(created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND MONTH(created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))";
+                $prevDateCondition = "YEAR(created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND MONTH(created_at) = MONTH(CURDATE())";
                 break;
             case 'year': 
                 $dateCondition = "YEAR(created_at) = YEAR(CURDATE())"; 
@@ -201,31 +201,6 @@ class Analytics extends BaseModel {
 
         $query = "
             SELECT 
-                SUM(CASE WHEN is_recurring = 1 THEN 1 ELSE 0 END) as recurring,
-                SUM(CASE WHEN is_recurring = 0 THEN 1 ELSE 0 END) as 'new'
-            FROM (
-                SELECT o.customer_phone,
-                (
-                    SELECT COUNT(*) 
-                    FROM orders o2 
-                    WHERE o2.customer_phone = o.customer_phone 
-                    AND o2.company_id = o.company_id 
-                    AND o2.created_at < MIN(o.created_at)
-                ) as has_previous_orders_ever,
-                EXISTS (
-                    SELECT 1 FROM orders o2 
-                    WHERE o2.customer_phone = o.customer_phone 
-                    AND o2.company_id = o.company_id 
-                    AND o2.created_at < o.created_at
-                ) as is_recurring
-                FROM orders o
-                WHERE o.company_id = ? AND $dateCondition AND o.customer_phone IS NOT NULL AND o.customer_phone != ''
-            ) sub
-        ";
-        
-        // Versión simplificada y más eficiente para MySQL
-        $query = "
-            SELECT 
                 SUM(IF(is_recurring > 0, 1, 0)) as recurring,
                 SUM(IF(is_recurring = 0, 1, 0)) as 'new'
             FROM (
@@ -246,6 +221,42 @@ class Analytics extends BaseModel {
         return [
             "new" => (int)($row['new'] ?? 0),
             "recurring" => (int)($row['recurring'] ?? 0)
+        ];
+    }
+
+    public function getRatingStats($companyId) {
+        $query = "
+            SELECT rating, COUNT(*) as count
+            FROM reviews
+            WHERE company_id = ?
+            GROUP BY rating
+            ORDER BY rating DESC
+        ";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->execute([$companyId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $counts = [
+            5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0
+        ];
+        $total = 0;
+        $sum = 0;
+
+        foreach ($rows as $row) {
+            $r = (int)$row['rating'];
+            $c = (int)$row['count'];
+            $counts[$r] = $c;
+            $total += $c;
+            $sum += ($r * $c);
+        }
+
+        $average = $total > 0 ? round($sum / $total, 2) : 0;
+
+        return [
+            "distribution" => $counts,
+            "total_reviews" => $total,
+            "average" => $average
         ];
     }
 }

@@ -270,6 +270,59 @@
                 </div>
             </div>
 
+            <!-- Fila 4: Satisfacción del Cliente (Rating Summary) -->
+            <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                <div class="flex items-center justify-between mb-8">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-yellow-50 rounded-xl flex items-center justify-center">
+                            <Star class="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                        </div>
+                        <div>
+                            <h3 class="font-black text-gray-800">Satisfacción del Cliente</h3>
+                            <p class="text-xs text-gray-400">Distribución de reseñas y promedio de estrellas</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="loadingExtra" class="h-40 bg-gray-50 rounded-2xl animate-pulse"></div>
+                <div v-else-if="ratingData.total_reviews === 0" class="h-40 flex flex-col items-center justify-center text-gray-400 text-sm bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                    <Star class="w-8 h-8 mb-2 opacity-20" />
+                    <p>Aún no has recibido calificaciones de tus clientes.</p>
+                </div>
+                <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                    <!-- Promedio Grande -->
+                    <div class="text-center md:border-r border-gray-100">
+                        <p class="text-6xl font-black text-gray-800 mb-2">{{ ratingData.average }}</p>
+                        <div class="flex justify-center gap-1 mb-2">
+                            <Star v-for="i in 5" :key="i" 
+                                  :class="['w-5 h-5', i <= Math.round(ratingData.average) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200']" />
+                        </div>
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">{{ ratingData.total_reviews }} Reseñas totales</p>
+                    </div>
+
+                    <!-- Barras de Distribución -->
+                    <div class="md:col-span-2 space-y-3">
+                        <div v-for="star in [5, 4, 3, 2, 1]" :key="star" class="flex items-center gap-4 group">
+                            <div class="flex items-center gap-1 w-10 shrink-0">
+                                <span class="text-xs font-black text-gray-600">{{ star }}</span>
+                                <Star class="w-3 h-3 text-gray-400 fill-gray-400" />
+                            </div>
+                            <div class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-full rounded-full transition-all duration-1000"
+                                     :class="star >= 4 ? 'bg-emerald-500' : star === 3 ? 'bg-yellow-400' : 'bg-red-400'"
+                                     :style="{ width: getRatingPercent(star) + '%' }">
+                                </div>
+                            </div>
+                            <div class="w-12 text-right">
+                                <span class="text-xs font-bold text-gray-400 group-hover:text-gray-800 transition-colors">
+                                    {{ getRatingPercent(star) }}%
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Gráfico Financiero General -->
             <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                 <div class="flex items-center gap-3 mb-6">
@@ -331,6 +384,7 @@ const orderTypes = ref([])
 const expenseBreakdown = ref([])
 const kitchenEfficiency = ref(0)
 const retentionData = ref({ new: 0, recurring: 0 })
+const ratingData = ref({ average: 0, total_reviews: 0, distribution: {} })
 
 const orderTypeInfo = {
     DINE_IN:  { label: 'Comedor', icon: '🍽️', color: 'bg-purple-500' },
@@ -374,6 +428,12 @@ const getRetentionPercent = (type) => {
     return Math.round((retentionData.value[type] / total) * 100)
 }
 
+const getRatingPercent = (star) => {
+    if (ratingData.value.total_reviews === 0) return 0
+    const count = ratingData.value.distribution[star] || 0
+    return Math.round((count / ratingData.value.total_reviews) * 100)
+}
+
 const financialBars = computed(() => [
     { label: 'Ingreso', value: salesData.value.gross_sales, color: 'bg-emerald-400', textColor: 'text-emerald-600' },
     { label: 'Utilidad', value: Math.max(salesData.value.net_profit, 0), color: 'bg-blue-500', textColor: 'text-blue-600' },
@@ -385,7 +445,7 @@ const loadAll = async () => {
     loading.value = true
     loadingExtra.value = true
     try {
-        const [salesRes, productsRes, peakRes, typesRes, expensesRes, kitchenRes, retentionRes] = await Promise.all([
+        const [salesRes, productsRes, peakRes, typesRes, expensesRes, kitchenRes, retentionRes, ratingsRes] = await Promise.all([
             axios.get(`/api.php/analytics/sales?company_id=${companyId.value}&period=${period.value}`),
             axios.get(`/api.php/analytics/top-products?company_id=${companyId.value}`),
             axios.get(`/api.php/analytics/peak-hours?company_id=${companyId.value}&period=${period.value}`),
@@ -393,11 +453,13 @@ const loadAll = async () => {
             axios.get(`/api.php/analytics/expense-breakdown?company_id=${companyId.value}&period=${period.value}`),
             axios.get(`/api.php/analytics/kitchen-efficiency?company_id=${companyId.value}&period=${period.value}`),
             axios.get(`/api.php/analytics/customer-retention?company_id=${companyId.value}&period=${period.value}`),
+            axios.get(`/api.php/analytics/ratings?company_id=${companyId.value}`),
         ])
         salesData.value = salesRes.data.metrics
         topProducts.value = productsRes.data.top_products ?? []
         kitchenEfficiency.value = kitchenRes.data.avg_minutes ?? 0
         retentionData.value = retentionRes.data ?? { new: 0, recurring: 0 }
+        ratingData.value = ratingsRes.data ?? { average: 0, total_reviews: 0, distribution: {} }
         
         // Blindaje para peakHours: Asegurar que siempre sea un array de 24 números
         let hoursRaw = peakRes.data.hours || []
