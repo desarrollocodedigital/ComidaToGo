@@ -11,6 +11,7 @@ export const useDialogStore = defineStore('dialog', () => {
     const showInput = ref(false)
     const inputValue = ref('')
     const inputPlaceholder = ref('')
+    const inputType = ref('textarea') // textarea, text, tel
     
     // Promesa para manejar la respuesta del usuario
     let resolvePromise = null
@@ -26,6 +27,7 @@ export const useDialogStore = defineStore('dialog', () => {
     function prompt(options) {
         inputValue.value = ''
         inputPlaceholder.value = options.placeholder || 'Escribe aquí...'
+        inputType.value = options.inputType || 'textarea'
         showInput.value = true
         return show({ ...options, type: 'confirm' })
     }

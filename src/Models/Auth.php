@@ -107,4 +107,89 @@ class Auth extends BaseModel {
             "success" => false
         ];
     }
+
+    /**
+     * Valida un ID Token de Google y autentica/registra al usuario.
+     */
+    public function handleGoogleLogin($idToken) {
+        try {
+            $clientId = $_ENV['GOOGLE_CLIENT_ID'] ?? getenv('GOOGLE_CLIENT_ID');
+            $client = new \Google\Client(['client_id' => $clientId]);
+            
+            $payload = $client->verifyIdToken($idToken);
+            
+            if (!$payload) {
+                return ["success" => false, "message" => "Token de Google inválido"];
+            }
+
+            $email = $payload['email'];
+            $name = $payload['name'];
+            // $picture = $payload['picture'] ?? null;
+
+            // 1. Buscar si el usuario ya existe
+            $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE email = :email");
+            $stmt->execute([':email' => $email]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$user) {
+                // 2. Registrar usuario nuevo (como CUSTOMER)
+                $randomPass = bin2hex(random_bytes(16)); // Contraseña aleatoria de respaldo
+                $hash = password_hash($randomPass, PASSWORD_DEFAULT);
+                
+                $sql = "INSERT INTO {$this->table} (name, email, password, role) VALUES (:name, :email, :pass, 'CUSTOMER')";
+                $stmtIns = $this->db->prepare($sql);
+                $stmtIns->execute([
+                    ':name' => $name,
+                    ':email' => $email,
+                    ':pass' => $hash
+                ]);
+                $userId = $this->db->lastInsertId();
+                
+                $user = [
+                    "id" => $userId,
+                    "name" => $name,
+                    "email" => $email,
+                    "role" => 'CUSTOMER',
+                    "company_id" => null,
+                    "phone" => null,
+                    "addresses" => "[]",
+                    "cart_data" => null
+                ];
+            }
+
+            // 3. Verificar si está activo (en caso de que sea usuario existente)
+            if (isset($user['active']) && (int)$user['active'] === 0) {
+                return [
+                    "success" => false,
+                    "message" => "Cuenta suspendida. Contacte al administrador."
+                ];
+            }
+
+            // 4. Preparar respuesta de sesión (mismo formato que login tradicional)
+            $companyId = null;
+            if ($user['role'] === 'OWNER') {
+                $stmtC = $this->db->prepare("SELECT id FROM companies WHERE owner_id = :uid LIMIT 1");
+                $stmtC->execute([':uid' => $user['id']]);
+                $company = $stmtC->fetch(PDO::FETCH_ASSOC);
+                if ($company) $companyId = $company['id'];
+            }
+
+            return [
+                "success" => true,
+                "user" => [
+                    "id" => $user['id'],
+                    "name" => $user['name'],
+                    "email" => $user['email'],
+                    "role" => $user['role'],
+                    "company_id" => $companyId,
+                    "phone" => $user['phone'] ?? null,
+                    "addresses" => is_string($user['addresses']) ? json_decode($user['addresses'], true) : ($user['addresses'] ?? []),
+                    "cart_data" => $user['cart_data'] ?? null
+                ]
+            ];
+
+        } catch (Exception $e) {
+            return ["success" => false, "message" => "Error en proceso Google: " . $e->getMessage()];
+        }
+    }
 }

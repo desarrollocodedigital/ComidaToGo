@@ -48,6 +48,8 @@ if ($resource === 'auth') {
         $controller->register();
     } elseif ($param === 'login' && $method === 'POST') {
         $controller->login();
+    } elseif ($param === 'google' && $method === 'POST') {
+        $controller->googleLogin();
     }
 } elseif ($resource === 'tenant') {
     $controller = new CompanyController();

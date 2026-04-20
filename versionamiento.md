@@ -5,6 +5,7 @@
 - Modernización del Control de Caja: Humanización de responsables del turno, migración total a diálogos premium y soporte para reportes multilineales.
 - Automatización Contable: Registro automático de faltantes de caja como gastos para garantizar la precisión de las analíticas de utilidad.
 - Optimización POS: Centralización de configuración de impresora en base de datos y nueva calculadora de cambio para pagos en efectivo.
+- Autenticación Social: Integración completa de **Google Login** en el sistema para agilizar el acceso y registro de clientes.
 
 ### 💾 Scripts de Base de Datos (SQL)
 ```sql
@@ -34,6 +35,7 @@
     - [x] `CashRegisterView.vue`: Humanización del responsable del turno (Nombre vs ID) y migración total a diálogos premium.
     - [x] `DialogProvider.vue (Refactor)`: Soporte para mensajes multilínea (`whitespace-pre-line`).
     - [x] `CashRegister.php (Model)`: Automatización de registro de faltantes de caja como gastos contables.
+    - [x] `Auth System`: Implementación de **Google Social Login** con registro automático de clientes.
 
 ---
 

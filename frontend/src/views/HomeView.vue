@@ -316,36 +316,43 @@ onMounted(() => {
                 </p>
                 
                 <!-- Search Box -->
-                <div class="bg-white p-2 rounded-2xl shadow-2xl max-w-2xl mx-auto flex flex-col md:flex-row gap-2">
-                    <div class="flex-1 relative flex items-center px-4 border-b md:border-b-0 md:border-r border-gray-100">
-                        <MapPin class="w-5 h-5 text-gray-400 shrink-0" />
+                <div class="bg-white p-2 rounded-2xl shadow-2xl max-w-4xl mx-auto flex flex-col md:flex-row gap-1 md:gap-2 items-center">
+                    <!-- Ubicación -->
+                    <div class="w-full md:flex-[1.5] relative flex items-center px-4 border-b md:border-b-0 md:border-r border-gray-100 min-w-0 h-12 md:h-14">
+                        <MapPin class="w-5 h-5 shrink-0" :class="locationStatus === 'loading' ? 'text-orange-400 animate-bounce' : 'text-orange-500'" />
                         <input 
-                            v-model="locationAddress"
+                            :value="locationStatus === 'loading' ? 'Detectando ubicación...' : locationAddress"
+                            @input="locationAddress = $event.target.value"
                             type="text" 
                             placeholder="Ubicación actual" 
-                            class="w-full p-3 bg-transparent focus:outline-none text-gray-700 truncate font-medium text-sm"
+                            class="w-full h-full p-2 bg-transparent focus:outline-none text-gray-700 font-medium text-sm overflow-ellipsis"
+                            :class="{ 'italic text-orange-400 animate-pulse': locationStatus === 'loading' }"
                         />
                         <button 
                             @click="getUserLocation"
-                            class="text-xs font-bold px-2 py-1 rounded whitespace-nowrap transition-all"
+                            class="text-[10px] font-black px-2 py-1 rounded whitespace-nowrap transition-all uppercase tracking-tight shrink-0"
                             :class="locationStatus === 'success' ? 'bg-green-50 text-green-600' : 'text-orange-600 hover:bg-orange-50'"
                         >
-                            {{ locationStatus === 'loading' ? 'Localizando...' : (locationStatus === 'success' ? 'Ubicación Activa' : 'Usar GPS') }}
+                            {{ locationStatus === 'loading' ? '...' : (locationStatus === 'success' ? 'Activo' : 'GPS') }}
                         </button>
                     </div>
-                    <div class="flex-[1.5] flex items-center px-2">
-                         <Search class="w-5 h-5 text-gray-400 ml-2" />
+
+                    <!-- Búsqueda -->
+                    <div class="w-full md:flex-[2] flex items-center px-4 min-w-0 h-12 md:h-14">
+                         <Search class="w-5 h-5 text-gray-400 shrink-0" />
                          <input 
                             v-model="tempQuery"
                             @keyup.enter="search('platillos')"
                             type="text" 
-                            placeholder="¿Qué se te antoja? Tacos, Sushi..." 
-                            class="w-full p-3 bg-transparent focus:outline-none text-gray-800 font-medium"
+                            placeholder="¿Qué se te antoja?" 
+                            class="w-full h-full p-2 bg-transparent focus:outline-none text-gray-800 font-medium truncate"
                         />
                     </div>
+
+                    <!-- Botón -->
                     <button 
                         @click="search('platillos')"
-                        class="bg-black text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition-colors"
+                        class="w-full md:w-auto bg-black text-white px-8 py-3 md:py-0 rounded-xl font-bold hover:bg-gray-800 transition-colors h-12 md:h-14 mt-1 md:mt-0"
                     >
                         Buscar
                     </button>

@@ -40,12 +40,22 @@ const dialog = useDialogStore()
             
             <div v-if="dialog.showInput" class="mt-4 px-2">
               <textarea 
+                v-if="dialog.inputType === 'textarea'"
                 v-model="dialog.inputValue" 
                 :placeholder="dialog.inputPlaceholder"
                 rows="3"
                 class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:outline-none text-slate-700 font-medium text-sm transition-all resize-none"
                 autofocus
               ></textarea>
+              <input 
+                v-else
+                v-model="dialog.inputValue" 
+                :type="dialog.inputType"
+                :placeholder="dialog.inputPlaceholder"
+                class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:outline-none text-slate-700 font-bold text-lg text-center transition-all"
+                autofocus
+                @keyup.enter="dialog.handleConfirm"
+              >
             </div>
           </div>
         </div>

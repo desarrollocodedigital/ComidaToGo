@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import axios from 'axios'
 import router from '../router'
 import { useCartStore } from './cart'
+import { useDialogStore } from './dialog'
 
 export const useAuthStore = defineStore('auth', () => {
     // ESTADO UNIFICADO
@@ -76,6 +77,61 @@ export const useAuthStore = defineStore('auth', () => {
         } catch (e) {
             console.error(e)
             const msg = e.response?.data?.message || 'Error de conexión'
+            return { success: false, message: msg }
+        }
+    }
+
+    async function loginWithGoogle(credential) {
+        const dialog = useDialogStore()
+        try {
+            const { data } = await axios.post('api.php/auth/google', { credential })
+
+            if (data.user) {
+                // Sincronizar perfiles y direcciones
+                const serverAddresses = data.user.addresses || []
+                const localAddresses = user.value.addresses || []
+                const mergedAddresses = [...new Set([...serverAddresses, ...localAddresses])]
+
+                user.value = { 
+                    ...initialUser, 
+                    ...data.user, 
+                    addresses: mergedAddresses 
+                }
+                
+                token.value = data.token || 'dummy-token'
+                localStorage.setItem('token', token.value)
+
+                const cart = useCartStore()
+                cart.loadFromServer(data.user.cart_data)
+
+                // LÓGICA DE CAPTURA DE TELÉFONO (Solo si falta)
+                if (!user.value.phone) {
+                    const phone = await dialog.prompt({
+                        title: 'Verifica tu Teléfono',
+                        message: '¡Bienvenido! Déjanos tu número de celular para poder contactarte en tus pedidos.',
+                        placeholder: 'Ej: 1234567890',
+                        inputType: 'tel',
+                        confirmText: 'Registrar',
+                        cancelText: null // Obligatorio para usuarios nuevos/sin teléfono
+                    })
+
+                    if (phone && phone.trim()) {
+                        user.value.phone = phone.trim()
+                        await syncProfile()
+                    }
+                }
+
+                if (['OWNER', 'CASHIER', 'KITCHEN', 'WAITER'].includes(user.value.role)) {
+                    router.push('/admin/dashboard')
+                } else {
+                    router.push('/')
+                }
+                return { success: true }
+            }
+            return { success: false, message: data.message || 'Error al autenticar' }
+        } catch (e) {
+            console.error(e)
+            const msg = e.response?.data?.message || 'Error de conexión con Google'
             return { success: false, message: msg }
         }
     }
@@ -201,6 +257,7 @@ export const useAuthStore = defineStore('auth', () => {
         isGuest, 
         isConfigured, 
         login, 
+        loginWithGoogle,
         register, 
         logout,
         setGuestProfile,
