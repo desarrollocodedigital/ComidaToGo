@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, onUnmounted } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 import { Search, MapPin, Clock, ShoppingBag, LogOut, LayoutDashboard, ChevronRight, X, UtensilsCrossed, Store, Star } from 'lucide-vue-next'
@@ -210,10 +210,22 @@ const getEstimatedTime = (km) => {
     const baseTime = 10
     const travelTime = Math.round(dist * 2)
     
-    const minTime = baseTime + travelTime
-    const maxTime = minTime + 5 // Rango de 5 min
-    
-    return `${minTime}-${maxTime} min`
+    const minMins = baseTime + travelTime
+    const maxMins = minMins + 5 // Rango de 5 min
+
+    const formatMins = (m) => {
+        if (m < 60) return `${m} min`
+        const h = Math.floor(m / 60)
+        const rm = m % 60
+        return rm > 0 ? `${h}h ${rm}m` : `${h}h`
+    }
+
+    // Si ambos son menores a 60, mantenemos el formato original compacto "X-Y min"
+    if (maxMins < 60) {
+        return `${minMins}-${maxMins} min`
+    }
+
+    return `${formatMins(minMins)} - ${formatMins(maxMins)}`
 }
 
 const filterByCategory = async (catName, type) => {
@@ -244,6 +256,11 @@ watch(showModal, (isOpen) => {
     } else {
         document.body.style.overflow = ''
     }
+})
+
+// Limpieza al salir de la vista para reactivar scroll
+onUnmounted(() => {
+    document.body.style.overflow = ''
 })
 
 const handleCategoryClick = (catName) => {

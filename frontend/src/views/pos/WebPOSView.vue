@@ -73,8 +73,13 @@
 
         <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           <div v-for="product in filteredProducts" :key="product.id" @click="addToCart(product)" class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md hover:border-orange-200 cursor-pointer transition-all transform hover:-translate-y-1 relative overflow-hidden">
-            <div class="w-full h-32 bg-slate-100 rounded-xl mb-4 flex items-center justify-center text-4xl overflow-hidden">
-                <img v-if="product.image_url" :src="product.image_url" class="w-full h-full object-cover">
+            <div class="w-full h-32 bg-slate-100 rounded-xl mb-4 flex items-center justify-center text-4xl overflow-hidden" :class="{ 'animate-pulse': product.image_url }">
+                <img 
+                    v-if="product.image_url" 
+                    :src="product.image_url" 
+                    @load="$event.target.classList.remove('opacity-0'); $event.target.parentElement.classList.remove('animate-pulse')"
+                    class="w-full h-full object-cover transition-opacity duration-700 opacity-0"
+                >
                 <span v-else>🍽️</span>
             </div>
             <h3 class="font-bold text-slate-800 text-lg leading-tight line-clamp-2">{{ product.name }}</h3>

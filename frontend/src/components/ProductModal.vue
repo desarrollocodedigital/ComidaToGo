@@ -116,7 +116,7 @@ const addToCart = () => {
 <template>
   <div v-if="isOpen" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center pointer-events-none">
     <!-- Backdrop -->
-    <div @click="$emit('close')" class="absolute inset-0 bg-black/50 pointer-events-auto transition-opacity"></div>
+    <div @click="$emit('close')" class="absolute inset-0 bg-black/50 backdrop-blur-sm pointer-events-auto transition-opacity"></div>
     
     <!-- Modal Panel -->
     <div class="bg-white w-full max-w-lg sm:rounded-xl shadow-2xl pointer-events-auto flex flex-col max-h-[90vh] overflow-hidden transform transition-all">

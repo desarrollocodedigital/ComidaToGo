@@ -286,8 +286,13 @@ onMounted(() => {
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div v-for="prod in products" :key="prod.id" class="border rounded-xl  overflow-hidden hover:shadow-md transition bg-white flex flex-col">
-                        <div class="h-40 bg-gray-100 relative">
-                            <img v-if="prod.image_url" :src="prod.image_url" class="origin-center w-full h-full object-cover">
+                        <div class="h-40 bg-gray-100 relative" :class="{ 'animate-pulse': prod.image_url }">
+                            <img 
+                                v-if="prod.image_url" 
+                                :src="prod.image_url" 
+                                @load="$event.target.classList.remove('opacity-0'); $event.target.parentElement.classList.remove('animate-pulse')"
+                                class="origin-center w-full h-full object-cover transition-all duration-700 opacity-0"
+                            >
                             <div v-else class="flex items-center justify-center w-full h-full text-gray-300">
                                 <ImageIcon class="w-12 h-12" />
                             </div>
@@ -434,7 +439,8 @@ onMounted(() => {
                                     <img 
                                         v-if="productModal.data.image_url" 
                                         :src="productModal.data.image_url" 
-                                        class="w-full h-full object-cover group-hover:opacity-75 transition-opacity"
+                                        @load="$event.target.classList.remove('opacity-0'); $event.target.parentElement.classList.remove('animate-pulse')"
+                                        class="w-full h-full object-cover group-hover:opacity-75 transition-all duration-700 opacity-0"
                                     >
                                     <div v-else class="flex flex-col items-center text-gray-400 group-hover:text-orange-500">
                                         <Upload class="w-10 h-10 mb-2" />

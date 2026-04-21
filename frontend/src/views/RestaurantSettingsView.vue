@@ -204,8 +204,14 @@ onMounted(() => {
                      <div 
                         @click="$refs.bannerInput.click()"
                         class="relative h-32 rounded-2xl border-2 border-dashed border-gray-200 hover:border-orange-500 hover:bg-orange-50 transition-all cursor-pointer overflow-hidden group"
+                        :class="{ 'animate-pulse': company.banner_url }"
                      >
-                         <img v-if="company.banner_url" :src="company.banner_url" class="w-full h-full object-cover group-hover:opacity-75 transition-opacity">
+                         <img 
+                            v-if="company.banner_url" 
+                            :src="company.banner_url" 
+                            @load="$event.target.classList.remove('opacity-0'); $event.target.parentElement.classList.remove('animate-pulse')"
+                            class="w-full h-full object-cover group-hover:opacity-75 transition-all duration-700 opacity-0"
+                         >
                          <div class="absolute inset-0 flex flex-col items-center justify-center text-gray-400 group-hover:text-orange-600">
                              <Image class="w-8 h-8 mb-1" />
                              <span class="text-xs font-bold uppercase tracking-wider">{{ company.banner_url ? 'Cambiar Imagen' : 'Subir Banner' }}</span>
@@ -223,8 +229,14 @@ onMounted(() => {
                         <div 
                             @click="$refs.logoInput.click()"
                             class="w-full h-full rounded-2xl border-2 border-dashed border-gray-200 hover:border-orange-500 hover:bg-orange-50 transition-all cursor-pointer overflow-hidden group flex flex-col items-center justify-center text-gray-400 group-hover:text-orange-600 bg-white"
+                            :class="{ 'animate-pulse': company.logo_url }"
                         >
-                            <img v-if="company.logo_url" :src="company.logo_url" class="w-full h-full object-cover group-hover:opacity-75 transition-opacity">
+                            <img 
+                                v-if="company.logo_url" 
+                                :src="company.logo_url" 
+                                @load="$event.target.classList.remove('opacity-0'); $event.target.parentElement.classList.remove('animate-pulse')"
+                                class="w-full h-full object-cover group-hover:opacity-75 transition-all duration-700 opacity-0"
+                            >
                             <div v-else class="flex flex-col items-center">
                                 <Image class="w-6 h-6 mb-1" />
                                 <span class="text-[10px] font-bold uppercase">Subir</span>
