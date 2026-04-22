@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
@@ -49,6 +49,18 @@ onMounted(async () => {
 
     try {
         const { data } = await axios.get(`/api.php/tenant/${route.params.slug}`)
+        
+        // Normalizar URLs de imágenes en el menú
+        if (data.menu) {
+            data.menu.forEach(cat => {
+                cat.products.forEach(p => {
+                    if (p.image_url && !p.image_url.startsWith('http')) {
+                        const cleanPath = p.image_url.startsWith('/') ? p.image_url.slice(1) : p.image_url;
+                        p.image_url = import.meta.env.BASE_URL + cleanPath;
+                    }
+                })
+            })
+        }
         company.value = data
 
         // Lógica de Deep Linking: Abrir platillo si viene prod_id en URL
@@ -103,6 +115,20 @@ const goToCheckout = () => {
         router.push('/checkout')
     }
 }
+
+// Bloquear scroll del body cuando algún modal o el carrito están abiertos
+watch([isModalOpen, isCartOpen, showAuthModal], ([modal, cart, auth]) => {
+    if (modal || cart || auth) {
+        document.body.style.overflow = 'hidden'
+    } else {
+        document.body.style.overflow = ''
+    }
+})
+
+// Limpieza para asegurar que el scroll se reactive al salir de la vista (ej. al ir a Checkout)
+onUnmounted(() => {
+    document.body.style.overflow = ''
+})
 </script>
 
 <template>
@@ -172,8 +198,10 @@ const goToCheckout = () => {
                     <div>
                         <h1 class="text-lg font-bold text-gray-900 leading-tight">{{ company.name }}</h1>
                         <div class="flex items-center gap-2">
-                            <p class="text-xs text-green-600 font-medium" v-if="company.is_open">Abierto ahora</p>
-                            <span v-if="company.is_open && Number(company.average_rating) > 0" class="text-gray-300">|</span>
+                            <p class="text-xs font-medium" :class="company.is_open ? 'text-green-600' : 'text-red-500'">
+                                {{ company.is_open ? 'Abierto ahora' : 'Cerrado ahora' }}
+                            </p>
+                            <span v-if="Number(company.average_rating) > 0" class="text-gray-300">|</span>
                             <div v-if="Number(company.average_rating) > 0" class="flex items-center gap-1">
                                 <Star class="w-3 h-3 text-yellow-500 fill-yellow-500" />
                                 <span class="text-xs font-black text-gray-700">{{ Number(company.average_rating).toFixed(1) }}</span>

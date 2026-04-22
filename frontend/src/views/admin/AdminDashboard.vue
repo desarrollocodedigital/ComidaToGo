@@ -29,7 +29,7 @@ const loadData = async () => {
 
 const logout = () => {
     auth.logout()
-    window.location.href = '/login'
+    window.location.href = import.meta.env.BASE_URL + 'login'
 }
 
 onMounted(loadData)

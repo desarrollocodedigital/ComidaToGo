@@ -81,10 +81,13 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
-    async function loginWithGoogle(credential) {
+    async function loginWithGoogle(credential, extraData = {}) {
         const dialog = useDialogStore()
         try {
-            const { data } = await axios.post('api.php/auth/google', { credential })
+            const { data } = await axios.post('api.php/auth/google', { 
+                credential,
+                ...extraData 
+            })
 
             if (data.user) {
                 // Sincronizar perfiles y direcciones
@@ -106,9 +109,12 @@ export const useAuthStore = defineStore('auth', () => {
 
                 // LÓGICA DE CAPTURA DE TELÉFONO (Solo si falta)
                 if (!user.value.phone) {
+                    const isOwner = ['OWNER'].includes(user.value.role)
                     const phone = await dialog.prompt({
                         title: 'Verifica tu Teléfono',
-                        message: '¡Bienvenido! Déjanos tu número de celular para poder contactarte en tus pedidos.',
+                        message: isOwner 
+                            ? '¡Bienvenido Socio! Déjanos tu número de contacto para gestionar tus pedidos y cuenta.'
+                            : '¡Bienvenido! Déjanos tu número de celular para poder contactarte en tus pedidos.',
                         placeholder: 'Ej: 1234567890',
                         inputType: 'tel',
                         confirmText: 'Registrar',

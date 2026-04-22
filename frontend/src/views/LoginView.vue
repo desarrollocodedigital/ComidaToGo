@@ -27,7 +27,7 @@ onMounted(() => {
         });
         google.accounts.id.renderButton(
             document.getElementById("googleButton"),
-            { theme: "outline", size: "large", width: "100%", text: "continue_with" }
+            { theme: "outline", size: "large", text: "continue_with" }
         );
     }
 })
@@ -80,7 +80,9 @@ const doLogin = async () => {
             </div>
 
             <!-- Google Login Button Container -->
-            <div id="googleButton" class="w-full h-[40px]"></div>
+            <div class="flex justify-center w-full">
+                <div id="googleButton"></div>
+            </div>
 
             <div class="text-center mt-6">
                 <p class="text-sm text-gray-600">

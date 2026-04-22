@@ -111,7 +111,7 @@ class Auth extends BaseModel {
     /**
      * Valida un ID Token de Google y autentica/registra al usuario.
      */
-    public function handleGoogleLogin($idToken) {
+    public function handleGoogleLogin($idToken, $extra = []) {
         try {
             $clientId = $_ENV['GOOGLE_CLIENT_ID'] ?? getenv('GOOGLE_CLIENT_ID');
             $client = new \Google\Client(['client_id' => $clientId]);
@@ -121,40 +121,61 @@ class Auth extends BaseModel {
             if (!$payload) {
                 return ["success" => false, "message" => "Token de Google inválido"];
             }
-
+ 
             $email = $payload['email'];
             $name = $payload['name'];
-            // $picture = $payload['picture'] ?? null;
-
+ 
             // 1. Buscar si el usuario ya existe
             $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE email = :email");
             $stmt->execute([':email' => $email]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
+ 
             if (!$user) {
-                // 2. Registrar usuario nuevo (como CUSTOMER)
-                $randomPass = bin2hex(random_bytes(16)); // Contraseña aleatoria de respaldo
+                // 2. Registrar usuario nuevo
+                $role = $extra['role'] ?? 'CUSTOMER';
+                $randomPass = bin2hex(random_bytes(16));
                 $hash = password_hash($randomPass, PASSWORD_DEFAULT);
                 
-                $sql = "INSERT INTO {$this->table} (name, email, password, role) VALUES (:name, :email, :pass, 'CUSTOMER')";
-                $stmtIns = $this->db->prepare($sql);
-                $stmtIns->execute([
-                    ':name' => $name,
-                    ':email' => $email,
-                    ':pass' => $hash
-                ]);
-                $userId = $this->db->lastInsertId();
-                
-                $user = [
-                    "id" => $userId,
-                    "name" => $name,
-                    "email" => $email,
-                    "role" => 'CUSTOMER',
-                    "company_id" => null,
-                    "phone" => null,
-                    "addresses" => "[]",
-                    "cart_data" => null
-                ];
+                $this->db->beginTransaction();
+                try {
+                    $sql = "INSERT INTO {$this->table} (name, email, password, role) VALUES (:name, :email, :pass, :role)";
+                    $stmtIns = $this->db->prepare($sql);
+                    $stmtIns->execute([
+                        ':name' => $name,
+                        ':email' => $email,
+                        ':pass' => $hash,
+                        ':role' => $role
+                    ]);
+                    $userId = $this->db->lastInsertId();
+ 
+                    $companyId = null;
+                    if ($role === 'OWNER' && isset($extra['company_name'], $extra['company_slug'])) {
+                        $sqlComp = "INSERT INTO companies (name, slug, owner_id, is_open) VALUES (:cname, :cslug, :oid, 0)";
+                        $stmtComp = $this->db->prepare($sqlComp);
+                        $stmtComp->execute([
+                            ':cname' => $extra['company_name'],
+                            ':cslug' => $extra['company_slug'],
+                            ':oid' => $userId
+                        ]);
+                        $companyId = $this->db->lastInsertId();
+                    }
+ 
+                    $this->db->commit();
+ 
+                    $user = [
+                        "id" => $userId,
+                        "name" => $name,
+                        "email" => $email,
+                        "role" => $role,
+                        "company_id" => $companyId,
+                        "phone" => null,
+                        "addresses" => "[]",
+                        "cart_data" => null
+                    ];
+                } catch (Exception $e) {
+                    $this->db->rollBack();
+                    throw $e;
+                }
             }
 
             // 3. Verificar si está activo (en caso de que sea usuario existente)

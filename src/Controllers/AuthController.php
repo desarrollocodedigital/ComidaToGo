@@ -79,7 +79,11 @@ class AuthController {
                 return;
             }
 
-            $result = $this->model->handleGoogleLogin($credential);
+            $result = $this->model->handleGoogleLogin($credential, [
+                'role' => $input['role'] ?? 'CUSTOMER',
+                'company_name' => $input['company_name'] ?? null,
+                'company_slug' => $input['company_slug'] ?? null
+            ]);
 
             if ($result['success']) {
                 echo json_encode([

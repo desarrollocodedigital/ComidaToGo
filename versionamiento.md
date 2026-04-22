@@ -1,3 +1,24 @@
+## [2026-04-21] - Optimización de UI y Estados en Tiempo Real
+
+### 📝 Resumen de Cambios
+- Optimización de visualización de tiempos de entrega en el Marketplace (>60 min = Horas).
+- Corrección del estado de apertura dinámico en tiempo real para todos los negocios.
+- Implementación de bloqueo de scroll y desenfoque (blur) en modales.
+- Despliegue masivo de Skeleton Loaders en POS, Gestor de Menú y Configuraciones.
+
+### 🚀 Detalle Técnico
+- **Frontend (Vue 3)**:
+    - [x] `HomeView.vue`: Lógica de tiempo formateado y limpieza de scroll.
+    - [x] `TenantView.vue`: Sincronización de estado `is_open` real-time y bloqueo de scroll.
+    - [x] `WebPOSView.vue`: Skeleton loaders en imágenes del menú.
+    - [x] `MenuManagerView.vue`: Skeleton loaders en lista y modal de edición.
+    - [x] `RestaurantSettingsView.vue`: Skeleton loaders en banner y logo.
+    - [x] `ProductModal.vue`: Implementación de `backdrop-blur-sm`.
+- **Backend (PHP)**:
+    - [x] `Company.php`: Refactorización de `findBySlugOrId` para recalcular disponibilidad dinámicamente.
+
+---
+
 ## [2026-04-20] - Sistema de Calificaciones (Reviews)
 
 ### 📝 Resumen de Cambios

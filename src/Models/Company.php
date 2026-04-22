@@ -18,8 +18,14 @@ class Company extends BaseModel {
         $stmt->execute([':p' => $param]);
         $company = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($company && isset($company['schedule_config'])) {
-            $company['schedule_config'] = json_decode($company['schedule_config']);
+        if ($company) {
+            // Asegurar que el config sea un objeto para getIsOpenNow
+            if (isset($company['schedule_config'])) {
+                $company['schedule_config'] = is_string($company['schedule_config']) ? json_decode($company['schedule_config']) : $company['schedule_config'];
+            }
+            
+            // Recalcular estado real-time basado en horario y Timezone
+            $company['is_open'] = $this->getIsOpenNow($company) ? 1 : 0;
         }
 
         return $company;
