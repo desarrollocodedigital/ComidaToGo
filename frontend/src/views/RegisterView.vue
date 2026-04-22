@@ -16,9 +16,23 @@ const loading = ref(false)
 const error = ref('')
 
 const handleGoogleCallback = async (response) => {
-    loading.value = true
     error.value = ''
-    const res = await auth.loginWithGoogle(response.credential)
+    
+    // Si es registro de negocio, validar que haya puesto los datos básicos
+    if (role.value === 'OWNER') {
+        if (!companyName.value || !companySlug.value) {
+            error.value = 'Debes completar los datos de tu restaurante primero'
+            return
+        }
+    }
+
+    loading.value = true
+    const res = await auth.loginWithGoogle(response.credential, {
+        role: role.value,
+        company_name: companyName.value,
+        company_slug: companySlug.value
+    })
+    
     if (!res.success) {
         error.value = res.message || 'Error al registrar con Google'
     }
@@ -35,7 +49,7 @@ onMounted(() => {
             });
             google.accounts.id.renderButton(
                 document.getElementById("googleButtonRegister"),
-                { theme: "outline", size: "large", width: "100%", text: "signup_with" }
+                { theme: "outline", size: "large", text: "signup_with" }
             );
         } else {
             // Reintentar en 500ms si la librería aún no carga
@@ -159,8 +173,14 @@ const generateSlug = () => {
                 </div>
             </div>
 
+            <div v-if="role === 'OWNER'" class="text-center mb-4">
+                <p class="text-[10px] text-gray-400 italic">Para registrarte como negocio con Google, primero llena el nombre de tu restaurante arriba.</p>
+            </div>
+
             <!-- Google Signup Button Container -->
-            <div id="googleButtonRegister" class="w-full h-[40px] mb-6"></div>
+            <div class="flex justify-center w-full mb-6">
+                <div id="googleButtonRegister"></div>
+            </div>
 
             <div class="text-center mt-6">
                 <p class="text-sm text-gray-600">

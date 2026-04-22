@@ -1033,7 +1033,14 @@ const loadInitialData = async () => {
             categories.value.forEach(cat => {
                 if(cat.products) allProds.push(...cat.products)
             })
-            products.value = allProds
+            // Normalizar URLs de imágenes para producción/subdirectorios
+            products.value = allProds.map(p => {
+                if (p.image_url && !p.image_url.startsWith('http')) {
+                    const cleanPath = p.image_url.startsWith('/') ? p.image_url.slice(1) : p.image_url;
+                    p.image_url = import.meta.env.BASE_URL + cleanPath;
+                }
+                return p
+            })
         }
         // Load timer config
         if (resTenant.data.schedule_config) {

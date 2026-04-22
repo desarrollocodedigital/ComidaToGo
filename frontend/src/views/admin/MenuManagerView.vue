@@ -32,10 +32,11 @@ const fetchData = async () => {
         ])
         categories.value = catsRes.data
         
-        // Formatear rutas de imágenes para evitar fallos por rutas relativas en /admin
+        // Formatear rutas de imágenes para evitar fallos por rutas relativas en producción/subdirectorios
         products.value = prodsRes.data.map(p => {
-            if (p.image_url && !p.image_url.startsWith('http') && !p.image_url.startsWith('/')) {
-                p.image_url = '/' + p.image_url
+            if (p.image_url && !p.image_url.startsWith('http')) {
+                const cleanPath = p.image_url.startsWith('/') ? p.image_url.slice(1) : p.image_url;
+                p.image_url = import.meta.env.BASE_URL + cleanPath;
             }
             return p
         })
@@ -151,8 +152,9 @@ const handleFileUpload = async (event) => {
             headers: { 'Content-Type': 'multipart/form-data' }
         })
         let serverUrl = res.data.url
-        if (serverUrl && !serverUrl.startsWith('http') && !serverUrl.startsWith('/')) {
-            serverUrl = '/' + serverUrl
+        if (serverUrl && !serverUrl.startsWith('http')) {
+            const cleanPath = serverUrl.startsWith('/') ? serverUrl.slice(1) : serverUrl;
+            serverUrl = import.meta.env.BASE_URL + cleanPath;
         }
         productModal.value.data.image_url = serverUrl
         toast.success("Imagen cargada correctamente")

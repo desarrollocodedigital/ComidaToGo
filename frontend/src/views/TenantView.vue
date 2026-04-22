@@ -49,6 +49,18 @@ onMounted(async () => {
 
     try {
         const { data } = await axios.get(`/api.php/tenant/${route.params.slug}`)
+        
+        // Normalizar URLs de imágenes en el menú
+        if (data.menu) {
+            data.menu.forEach(cat => {
+                cat.products.forEach(p => {
+                    if (p.image_url && !p.image_url.startsWith('http')) {
+                        const cleanPath = p.image_url.startsWith('/') ? p.image_url.slice(1) : p.image_url;
+                        p.image_url = import.meta.env.BASE_URL + cleanPath;
+                    }
+                })
+            })
+        }
         company.value = data
 
         // Lógica de Deep Linking: Abrir platillo si viene prod_id en URL

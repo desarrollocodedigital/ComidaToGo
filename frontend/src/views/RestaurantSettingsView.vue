@@ -57,6 +57,16 @@ const fetchCompany = async () => {
         if (!company.value.status_mode) company.value.status_mode = 'AUTO'
         if (!company.value.printer_width) company.value.printer_width = '80'
         
+        // Normalizar URLs de imágenes para producción/subdirectorios
+        if (company.value.banner_url && !company.value.banner_url.startsWith('http')) {
+            const cleanPath = company.value.banner_url.startsWith('/') ? company.value.banner_url.slice(1) : company.value.banner_url;
+            company.value.banner_url = import.meta.env.BASE_URL + cleanPath;
+        }
+        if (company.value.logo_url && !company.value.logo_url.startsWith('http')) {
+            const cleanPath = company.value.logo_url.startsWith('/') ? company.value.logo_url.slice(1) : company.value.logo_url;
+            company.value.logo_url = import.meta.env.BASE_URL + cleanPath;
+        }
+
     } catch (e) {
         console.error(e)
     } finally {
@@ -90,10 +100,16 @@ const uploadImage = async (event, type) => {
             headers: { 'Content-Type': 'multipart/form-data' }
         })
 
+        let serverUrl = data.url
+        if (serverUrl && !serverUrl.startsWith('http')) {
+            const cleanPath = serverUrl.startsWith('/') ? serverUrl.slice(1) : serverUrl;
+            serverUrl = import.meta.env.BASE_URL + cleanPath;
+        }
+
         if (type === 'banner') {
-            company.value.banner_url = data.url
+            company.value.banner_url = serverUrl
         } else {
-            company.value.logo_url = data.url
+            company.value.logo_url = serverUrl
         }
     } catch (e) {
         console.error(e)
