@@ -1,3 +1,26 @@
+## [2026-04-23] - Restricción por Horario y Flujo de Geolocalización
+
+### 📝 Resumen de Cambios
+- Implementación de restricciones estrictas de pedidos cuando un negocio está fuera de su horario de atención.
+- Nuevo flujo de consentimiento de geolocalización para mejorar la transparencia y experiencia del usuario (UX).
+- Refactorización del motor de estados de apertura para centralizar mensajes amigables desde el backend.
+- Nuevo sistema de **Onboarding de Usuario** para captura obligatoria de teléfono y dirección con soporte para geocodificación de coordenadas.
+
+### 🚀 Detalle Técnico
+- **Backend (PHP)**:
+    - [x] `Company.php`: Refactorización de `getIsOpenNow` para devolver objetos de estado detallados.
+    - [x] `OrderController.php`: Validación de seguridad en la creación de pedidos basada en el horario del negocio.
+- **Frontend (Vue 3)**:
+    - [x] `OnboardingModal.vue`: Nuevo componente global para captura de datos post-registro con soporte para GPS y geocodificación inversa.
+    - [x] `auth.js (Store)`: Centralización de `userState`, guardado de estado en BD y sincronización reactiva con `localStorage`.
+    - [x] `HomeView.vue`: Integración de modal de consentimiento, respaldo reactivo de coordenadas de perfil para habilitar métricas de distancia/tiempo, geocodificación inversa como "fallback" para perfiles antiguos (legacy) y URLs codificadas (`encodeURIComponent`).
+    - [x] `App.vue`: Inclusión global de `OnboardingModal`.
+    - [x] `TenantView.vue`: Banner de advertencia de negocio cerrado.
+    - [x] `ProductModal.vue`: Bloqueo de botón "Agregar" y advertencia visual.
+    - [x] `CheckoutView.vue`: Verificación reactiva de estado de apertura antes de confirmar pedido.
+
+---
+
 ## [2026-04-21] - Optimización de UI y Estados en Tiempo Real
 
 ### 📝 Resumen de Cambios

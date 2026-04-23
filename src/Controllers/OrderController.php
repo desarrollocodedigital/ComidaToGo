@@ -78,6 +78,26 @@ class OrderController {
             return;
         }
 
+        // Validar si el negocio está abierto
+        $companyModel = new \App\Models\Company();
+        $company = $companyModel->findBySlugOrId($input['company_id']);
+        
+        if (!$company) {
+            http_response_code(404);
+            echo json_encode(["message" => "Negocio no encontrado"]);
+            return;
+        }
+
+        if (!$company['is_open']) {
+            http_response_code(403);
+            $msg = $company['status_info']['message'] ?? "El negocio está cerrado en este momento.";
+            echo json_encode([
+                "message" => "No se pueden realizar pedidos: " . $msg,
+                "status_info" => $company['status_info'] ?? null
+            ]);
+            return;
+        }
+
         $result = $this->model->createOrderWithItems($input);
 
         if ($result['success']) {

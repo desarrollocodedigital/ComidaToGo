@@ -5,6 +5,7 @@ import { useCartStore } from './stores/cart'
 import LiveChatBox from './components/LiveChatBox.vue'
 import ToastProvider from './components/ToastProvider.vue'
 import DialogProvider from './components/DialogProvider.vue'
+import OnboardingModal from './components/OnboardingModal.vue'
 
 const auth = useAuthStore()
 const cart = useCartStore()
@@ -22,6 +23,7 @@ onMounted(() => {
   
   <ToastProvider />
   <DialogProvider />
+  <OnboardingModal />
   
   <!-- Global Floating Customer Chat (solo visible si no estás en rutas admin, no es demo, y estás LOGUEADO) -->
   <LiveChatBox 

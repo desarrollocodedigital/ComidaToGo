@@ -28,6 +28,8 @@ export const useAuthStore = defineStore('auth', () => {
 
     const user = ref(initialUser)
     const token = ref(localStorage.getItem('token'))
+    const showOnboardingModal = ref(false)
+    const userState = ref(localStorage.getItem('user_state') || '')
 
     // GETTERS
     const isAuthenticated = computed(() => !!user.value.id)
@@ -42,6 +44,14 @@ export const useAuthStore = defineStore('auth', () => {
             localStorage.removeItem('user')
         }
     }, { deep: true })
+    
+    watch(userState, (val) => {
+        if (val) {
+            localStorage.setItem('user_state', val)
+        } else {
+            localStorage.removeItem('user_state')
+        }
+    })
 
     // ACCIONES
     async function login(email, password) {
@@ -107,24 +117,9 @@ export const useAuthStore = defineStore('auth', () => {
                 const cart = useCartStore()
                 cart.loadFromServer(data.user.cart_data)
 
-                // LÓGICA DE CAPTURA DE TELÉFONO (Solo si falta)
-                if (!user.value.phone) {
-                    const isOwner = ['OWNER'].includes(user.value.role)
-                    const phone = await dialog.prompt({
-                        title: 'Verifica tu Teléfono',
-                        message: isOwner 
-                            ? '¡Bienvenido Socio! Déjanos tu número de contacto para gestionar tus pedidos y cuenta.'
-                            : '¡Bienvenido! Déjanos tu número de celular para poder contactarte en tus pedidos.',
-                        placeholder: 'Ej: 1234567890',
-                        inputType: 'tel',
-                        confirmText: 'Registrar',
-                        cancelText: null // Obligatorio para usuarios nuevos/sin teléfono
-                    })
-
-                    if (phone && phone.trim()) {
-                        user.value.phone = phone.trim()
-                        await syncProfile()
-                    }
+                // LÓGICA DE ONBOARDING (Solo para CUSTOMER si falta teléfono o dirección)
+                if (user.value.role === 'CUSTOMER' && (!user.value.phone || !user.value.addresses || user.value.addresses.length === 0)) {
+                    showOnboardingModal.value = true
                 }
 
                 if (['OWNER', 'CASHIER', 'KITCHEN', 'WAITER'].includes(user.value.role)) {
@@ -168,6 +163,11 @@ export const useAuthStore = defineStore('auth', () => {
             // Sincronizar carrito tras el registro
             const cart = useCartStore()
             cart.loadFromServer(data.user.cart_data)
+
+            // LÓGICA DE ONBOARDING TRAS REGISTRO (Solo para CUSTOMER)
+            if (user.value.role === 'CUSTOMER') {
+                showOnboardingModal.value = true
+            }
 
             if (['OWNER', 'CASHIER', 'KITCHEN', 'WAITER'].includes(user.value.role)) {
                 router.push('/admin/dashboard')
@@ -230,6 +230,20 @@ export const useAuthStore = defineStore('auth', () => {
         await syncProfile()
     }
 
+    async function completeOnboarding({ phone, address, references, state, lat, lng }) {
+        user.value.phone = phone
+        if (!user.value.addresses) user.value.addresses = []
+        user.value.addresses.push({ address, references, lat, lng, state })
+        
+        if (state) {
+            userState.value = state
+            localStorage.setItem('user_state', state)
+        }
+
+        await syncProfile()
+        return true
+    }
+
     async function logout() {
         // 1. Sincronización final: Guardamos el estado actual en la nube antes de limpiar
         const cart = useCartStore()
@@ -268,6 +282,9 @@ export const useAuthStore = defineStore('auth', () => {
         logout,
         setGuestProfile,
         addAddress,
-        removeAddress
+        removeAddress,
+        showOnboardingModal,
+        userState,
+        completeOnboarding
     }
 })

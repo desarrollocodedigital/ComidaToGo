@@ -26,6 +26,8 @@ const newAddress = ref('') // Valor temporal del textArea de dirección
 const newReferences = ref('') // Valor temporal del textArea de referencias
 const useNewAddress = ref(false)
 const scheduledTime = ref('') // Hora para pasar a recoger
+const isBusinessOpen = ref(true)
+const businessStatusMessage = ref('')
 
 // La dirección que realmente se va a enviar
 const effectiveAddress = computed(() => {
@@ -63,11 +65,33 @@ onMounted(() => {
         useNewAddress.value = true
     }
 
+    // Validar estado del negocio
+    if (cartStore.companyId) {
+        checkBusinessStatus()
+    }
+
     // Pequeño retardo para que el skeleton sea visible y la transición suave
     setTimeout(() => {
         isInitialLoading.value = false
     }, 600)
 })
+
+const checkBusinessStatus = async () => {
+    try {
+        const { data } = await axios.get(`/api.php/tenant/${cartStore.companyId}`)
+        isBusinessOpen.value = !!data.is_open
+        businessStatusMessage.value = data.status_info?.message || ''
+        
+        if (!data.is_open) {
+            dialog.alert({
+                title: 'Negocio Cerrado',
+                message: businessStatusMessage.value || 'Lo sentimos, el negocio acaba de cerrar y no puede recibir más pedidos por ahora.'
+            })
+        }
+    } catch (e) {
+        console.error("Error checking business status", e)
+    }
+}
 
 const deleteAddress = async (idx, addr) => {
     const isConfirmed = await dialog.confirm({
@@ -408,10 +432,17 @@ const submitOrder = async () => {
                 </div>
 
                 <!-- Actions -->
+                <div v-if="!isBusinessOpen" class="bg-red-50 p-4 rounded-xl border border-red-100 flex items-center gap-3 mb-4">
+                    <Clock class="w-5 h-5 text-red-500" />
+                    <p class="text-sm font-bold text-red-700">
+                        {{ businessStatusMessage || 'El negocio está cerrado' }}. No es posible procesar el pedido.
+                    </p>
+                </div>
+
                 <button 
                     @click="submitOrder"
-                    :disabled="loading"
-                    class="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg shadow-xl hover:bg-green-700 transition-all flex justify-center items-center gap-2"
+                    :disabled="loading || !isBusinessOpen"
+                    class="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg shadow-xl hover:bg-green-700 disabled:opacity-50 disabled:grayscale transition-all flex justify-center items-center gap-2"
                 >
                     <div v-if="loading" class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                     <span v-else>Confirmar Pedido - ${{ cartStore.cartTotal.toFixed(2) }}</span>
