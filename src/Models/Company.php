@@ -25,7 +25,9 @@ class Company extends BaseModel {
             }
             
             // Recalcular estado real-time basado en horario y Timezone
-            $company['is_open'] = $this->getIsOpenNow($company) ? 1 : 0;
+            $statusInfo = $this->getIsOpenNow($company);
+            $company['is_open'] = $statusInfo['is_open'] ? 1 : 0;
+            $company['status_info'] = $statusInfo;
         }
 
         return $company;
@@ -129,7 +131,9 @@ class Company extends BaseModel {
                 $config = is_string($result['schedule_config']) ? json_decode($result['schedule_config']) : $result['schedule_config'];
                 $result['schedule_config'] = $config;
                 // Calcular estado real-time
-                $result['is_open'] = $this->getIsOpenNow($result) ? 1 : 0;
+                $statusInfo = $this->getIsOpenNow($result);
+                $result['is_open'] = $statusInfo['is_open'] ? 1 : 0;
+                $result['status_info'] = $statusInfo;
             }
         }
 
@@ -176,8 +180,22 @@ class Company extends BaseModel {
 
     public function getIsOpenNow($company) {
         $mode = $company['status_mode'] ?? 'AUTO';
-        if ($mode === 'OPEN') return true;
-        if ($mode === 'CLOSED') return false;
+        
+        if ($mode === 'OPEN') {
+            return [
+                'is_open' => true,
+                'status' => 'OPEN',
+                'message' => 'Abierto ahora'
+            ];
+        }
+        
+        if ($mode === 'CLOSED') {
+            return [
+                'is_open' => false,
+                'status' => 'CLOSED',
+                'message' => 'Cerrado temporalmente'
+            ];
+        }
 
         // Lógica AUTO
         try {
@@ -190,16 +208,45 @@ class Company extends BaseModel {
             if (is_string($schedule)) $schedule = json_decode($schedule);
 
             if (!isset($schedule->$day) || ($schedule->$day->closed ?? false)) {
-                return false;
+                // Buscar el siguiente día abierto
+                return [
+                    'is_open' => false,
+                    'status' => 'CLOSED',
+                    'message' => 'Cerrado hoy'
+                ];
             }
 
             $open = $schedule->$day->open ?? '00:00';
             $close = $schedule->$day->close ?? '23:59';
 
-            // Manejo básico de horario (no cruza medianoche para simplificar)
-            return ($currentTime >= $open && $currentTime <= $close);
+            if ($currentTime < $open) {
+                return [
+                    'is_open' => false,
+                    'status' => 'OPENING_SOON',
+                    'next_opening' => $open,
+                    'message' => "Abre a las {$open}"
+                ];
+            }
+
+            if ($currentTime > $close) {
+                return [
+                    'is_open' => false,
+                    'status' => 'CLOSED',
+                    'message' => 'Cerrado por hoy'
+                ];
+            }
+
+            return [
+                'is_open' => true,
+                'status' => 'OPEN',
+                'message' => 'Abierto ahora'
+            ];
         } catch (\Exception $e) {
-            return false;
+            return [
+                'is_open' => false,
+                'status' => 'ERROR',
+                'message' => 'Horario no disponible'
+            ];
         }
     }
 }

@@ -6,7 +6,8 @@ const props = defineProps({
   isOpen: Boolean,
   product: Object,
   showImage: { type: Boolean, default: true },
-  showDescription: { type: Boolean, default: true }
+  showDescription: { type: Boolean, default: true },
+  isBusinessOpen: { type: Boolean, default: true }
 })
 
 const emit = defineEmits(['close', 'add-to-cart'])
@@ -212,6 +213,14 @@ const addToCart = () => {
                class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none text-sm text-gray-700 resize-none"
             ></textarea>
         </div>
+
+        <!-- Business Closed Warning -->
+        <div v-if="!isBusinessOpen" class="mt-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3">
+            <Clock class="w-5 h-5 text-red-500" />
+            <p class="text-xs font-bold text-red-700 leading-tight">
+                Este negocio no está aceptando pedidos en este momento. Por favor, consulta su horario de atención.
+            </p>
+        </div>
       </div>
 
       <!-- Footer Actions -->
@@ -231,10 +240,11 @@ const addToCart = () => {
           <!-- Add Button -->
           <button 
             @click="addToCart"
-            :disabled="!isValid"
+            :disabled="!isValid || !isBusinessOpen"
             class="flex-1 bg-black text-white py-3.5 rounded-full font-bold text-lg shadow-lg hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex justify-between px-6"
           >
-            <span>Agregar</span>
+            <span v-if="isBusinessOpen">Agregar</span>
+            <span v-else>Negocio Cerrado</span>
             <span>${{ totalPrice.toFixed(2) }}</span>
           </button>
         </div>

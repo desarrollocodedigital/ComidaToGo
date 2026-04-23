@@ -14,11 +14,12 @@ const featuredCompanies = ref([])
 const activeCategory = ref(null)
 const searchType = ref('negocios') // 'negocios' | 'platillos'
 const userCoords = ref(null)
-const userState = ref(null)
 const locationAddress = ref('')
 const isSearching = ref(false) // Para saber si estamos filtrando
 const locationStatus = ref('idle') // 'idle' | 'loading' | 'success' | 'error'
 const isLocating = ref(false) // Nuevo: Indica si estamos esperando al GPS
+const showLocationModal = ref(false)
+const locationDeclined = ref(false)
 
 const popularCategories = [
     { name: 'Tacos', emoji: '🌮' },
@@ -44,6 +45,19 @@ const scheduleDays = [
 ]
 
 const getStatus = (company) => {
+    // Si el backend ya nos dio la info procesada, la usamos
+    if (company.status_info) {
+        const si = company.status_info;
+        if (si.status === 'OPEN') {
+            return { text: si.message, color: 'text-green-600', bg: 'bg-green-100', dot: 'bg-green-500' };
+        } else if (si.status === 'OPENING_SOON') {
+            return { text: si.message, color: 'text-orange-600', bg: 'bg-orange-50', dot: 'bg-orange-500' };
+        } else {
+            return { text: si.message, color: 'text-red-500', bg: 'bg-red-50', dot: 'bg-red-500' };
+        }
+    }
+
+    // Fallback por si acaso
     if (company.status_mode === 'OPEN') return { text: 'Abierto ahora', color: 'text-green-600', bg: 'bg-green-100', dot: 'bg-green-500' };
     if (company.status_mode === 'CLOSED') return { text: 'Cerrado temporalmente', color: 'text-red-600', bg: 'bg-red-100', dot: 'bg-red-500' };
 
@@ -108,10 +122,10 @@ const search = async (type = 'negocios') => {
         let url = `/api.php/search?q=${tempQuery.value}&type=${effectiveType}`
         if (userCoords.value) {
             url += `&lat=${userCoords.value.latitude}&lng=${userCoords.value.longitude}`
-            if (userState.value) {
-                url += `&state=${userState.value}`
-            }
-            console.log(`📍 Buscando en ${userState.value || 'coordenadas'}:`, userCoords.value)
+        }
+        if (auth.userState) {
+            url += `&state=${encodeURIComponent(auth.userState)}`
+            console.log(`📍 Filtrando por estado: ${auth.userState}`)
         }
         const response = await axios.get(url)
         results.value = response.data
@@ -140,7 +154,7 @@ const clearFilters = () => {
 const resetToGlobal = () => {
     // Limpieza total para volver al estado inicial absoluto
     userCoords.value = null
-    userState.value = null
+    auth.userState = ''
     locationAddress.value = ''
     locationStatus.value = 'idle'
     isSearching.value = false
@@ -165,6 +179,8 @@ const getUserLocation = () => {
             const lat = position.coords.latitude
             const lng = position.coords.longitude
             userCoords.value = { latitude: lat, longitude: lng }
+            localStorage.setItem('location_preference', 'allowed')
+            localStorage.setItem('location_consent_seen', 'true')
             
             // Reverse Geocoding con Nominatim (Free)
             try {
@@ -173,13 +189,14 @@ const getUserLocation = () => {
                 
                 // Extraer Estado para el filtro potente
                 if (response.data.address && response.data.address.state) {
-                    userState.value = response.data.address.state
+                    auth.userState = response.data.address.state
                 }
             } catch (e) {
                 locationAddress.value = "Ubicación detectada"
             }
 
             locationStatus.value = 'success'
+            locationDeclined.value = false
             // Re-buscar con ubicación
             await search(searchType.value)
             isLocating.value = false
@@ -188,9 +205,25 @@ const getUserLocation = () => {
             console.warn("Geolocalización automatica rechazada u omitida:", error)
             locationStatus.value = 'error'
             isLocating.value = false
+            locationDeclined.value = true
             loadFeatured()
         }
     )
+}
+
+const acceptLocation = () => {
+    localStorage.setItem('location_consent_seen', 'true')
+    localStorage.setItem('location_preference', 'allowed')
+    showLocationModal.value = false
+    getUserLocation()
+}
+
+const declineLocation = () => {
+    localStorage.setItem('location_consent_seen', 'true')
+    localStorage.setItem('location_preference', 'declined')
+    showLocationModal.value = false
+    locationDeclined.value = true
+    loadFeatured()
 }
 
 const formatDistance = (km) => {
@@ -249,9 +282,9 @@ watch(tempQuery, (newVal) => {
     }
 })
 
-// Bloquear scroll del body cuando el modal está abierto
-watch(showModal, (isOpen) => {
-    if (isOpen) {
+// Bloquear scroll del body cuando algún modal está abierto
+watch([showModal, showLocationModal], ([isOpen, isLocationOpen]) => {
+    if (isOpen || isLocationOpen) {
         document.body.style.overflow = 'hidden'
     } else {
         document.body.style.overflow = ''
@@ -272,10 +305,74 @@ const handleCategoryClick = (catName) => {
     }
 }
 
-onMounted(() => {
-    loadFeatured()
-    // Autodetectar ubicación al iniciar para filtrado por estado inmediato
-    getUserLocation()
+const loadSavedLocation = async () => {
+    if (auth.isAuthenticated && auth.user.addresses && auth.user.addresses.length > 0) {
+        const primary = auth.user.addresses[0]
+        locationAddress.value = typeof primary === 'string' ? primary : primary.address
+        if (primary && typeof primary !== 'string') {
+            if (primary.lat || primary.lng) {
+                userCoords.value = { latitude: primary.lat, longitude: primary.lng }
+            }
+            if (primary.state) {
+                auth.userState = primary.state
+            } else if (!auth.userState && userCoords.value) {
+                // Respaldo para perfiles antiguos sin estado guardado: Geocodificación inversa
+                try {
+                    const response = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${userCoords.value.latitude}&lon=${userCoords.value.longitude}&zoom=18&addressdetails=1`)
+                    if (response.data.address && (response.data.address.state || response.data.address.province || response.data.address.region)) {
+                        auth.userState = response.data.address.state || response.data.address.province || response.data.address.region
+                    }
+                } catch (e) {
+                    console.warn("No se pudo obtener el estado regional del perfil", e)
+                }
+            }
+            console.log("🏠 Dirección de perfil cargada:", { coords: userCoords.value, state: auth.userState })
+            return true
+        }
+    }
+    return false
+}
+
+onMounted(async () => {
+    const hasSavedLocation = await loadSavedLocation()
+    
+    // Decidir qué cargar inicialmente
+    const consentSeen = localStorage.getItem('location_consent_seen')
+    const preference = localStorage.getItem('location_preference')
+
+    if (!consentSeen) {
+        loadFeatured()
+        showLocationModal.value = true
+    } else if (preference === 'allowed') {
+        // loadFeatured se llamará dentro de getUserLocation si falla, o search si tiene éxito
+        getUserLocation()
+    } else {
+        locationDeclined.value = true
+        if (auth.userState || userCoords.value) {
+            search()
+        } else {
+            loadFeatured()
+        }
+    }
+})
+
+// REACCIONAR A CAMBIOS DE USUARIO (Login/Onboarding)
+watch(() => auth.isAuthenticated, async (val) => {
+    if (val) {
+        const hasLoc = await loadSavedLocation()
+        if (hasLoc) search()
+    }
+})
+
+// REACCIONAR A LA FINALIZACIÓN DEL ONBOARDING
+watch(() => auth.showOnboardingModal, async (newVal, oldVal) => {
+    if (oldVal === true && newVal === false) {
+        console.log("🚀 Onboarding completado, actualizando HomeView...")
+        // 1. Actualizar dirección visual y coordenadas
+        await loadSavedLocation()
+        // 2. Disparar búsqueda (ya sea por coordenadas o por el nuevo estado capturado)
+        search()
+    }
 })
 </script>
 
@@ -374,6 +471,19 @@ onMounted(() => {
                         Buscar
                     </button>
                 </div>
+
+                <!-- Location Notice if Declined -->
+                <div v-if="locationDeclined" class="mt-8 bg-black/30 backdrop-blur-md rounded-2xl p-4 border border-white/10 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500 max-w-4xl mx-auto">
+                    <div class="flex items-center gap-3 text-sm text-orange-100">
+                        <div class="p-2 bg-orange-500/20 rounded-lg">
+                            <MapPin class="w-5 h-5 text-orange-400" />
+                        </div>
+                        <span class="font-medium">Activa tu ubicación para descubrir los mejores sabores cerca de ti.</span>
+                    </div>
+                    <button @click="getUserLocation" class="whitespace-nowrap text-xs font-black uppercase tracking-widest bg-white text-black px-6 py-3 rounded-xl hover:bg-orange-500 hover:text-white transition-all shadow-lg">
+                        Activar GPS
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -429,7 +539,7 @@ onMounted(() => {
         <div id="results-section" class="max-w-7xl mx-auto px-4 pb-20">
             <div class="flex items-center justify-between mb-8">
                 <h2 class="text-2xl font-bold text-gray-900">
-                    {{ searchQuery ? `Resultados para "${searchQuery}"` : (userCoords ? `Negocios en ${userState || 'tu zona'}` : 'Restaurantes Destacados') }}
+                    {{ searchQuery ? `Resultados para "${searchQuery}"` : (userCoords ? `Negocios en ${auth.userState || 'tu zona'}` : 'Restaurantes Destacados') }}
                 </h2>
                 <!-- Reset Filter Button (Solo si estamos buscando algo específico) -->
                 <button 
@@ -639,14 +749,14 @@ onMounted(() => {
                 <p class="text-gray-500 max-w-md mx-auto mb-10 leading-relaxed font-bold uppercase tracking-widest text-[10px]">
                     <template v-if="activeCategory">
                         Lo sentimos, actualmente no hay negocios de <span class="text-orange-600">{{ activeCategory }}</span> 
-                        {{ userState ? `en ${userState}` : 'en esta zona' }}. 
+                        {{ auth.userState ? `en ${auth.userState}` : 'en esta zona' }}. 
                     </template>
                     <template v-else-if="searchQuery">
                         No hay resultados para <span class="text-orange-600">"{{ searchQuery }}"</span> 
-                        {{ userState ? `en ${userState}` : '' }}. Prueba con otros términos.
+                        {{ auth.userState ? `en ${auth.userState}` : '' }}. Prueba con otros términos.
                     </template>
                     <template v-else>
-                        Lo sentimos, actualmente {{ userState ? `no tenemos cobertura en ${userState}` : 'no encontramos resultados para tu búsqueda' }}.
+                        Lo sentimos, actualmente {{ auth.userState ? `no tenemos cobertura en ${auth.userState}` : 'no encontramos resultados para tu búsqueda' }}.
                     </template>
                     <br/>
                     <span class="opacity-50 font-medium normal-case tracking-normal">Prueba con otra búsqueda o explora el catálogo completo.</span>
@@ -832,6 +942,58 @@ onMounted(() => {
                             Ir al Menú
                             <ChevronRight class="w-5 h-5" />
                         </router-link>
+                    </div>
+                </div>
+            </div>
+        </Transition>
+
+        <!-- Geolocation Consent Modal -->
+        <Transition
+            enter-active-class="transition duration-500 ease-out"
+            enter-from-class="opacity-0 scale-95"
+            enter-to-class="opacity-100 scale-100"
+            leave-active-class="transition duration-300 ease-in"
+            leave-from-class="opacity-100 scale-100"
+            leave-to-class="opacity-0 scale-95"
+        >
+            <div v-if="showLocationModal" class="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                <!-- Backdrop -->
+                <div class="absolute inset-0 bg-black/80 backdrop-blur-md"></div>
+
+                <!-- Modal Panel -->
+                <div class="relative bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 text-center overflow-hidden">
+                    <!-- Decoration -->
+                    <div class="absolute -top-12 -right-12 w-32 h-32 bg-orange-50 rounded-full"></div>
+                    <div class="absolute -bottom-12 -left-12 w-32 h-32 bg-blue-50 rounded-full"></div>
+
+                    <div class="relative z-10">
+                        <div class="w-20 h-20 bg-orange-100 rounded-3xl flex items-center justify-center mx-auto mb-6 rotate-3 shadow-lg shadow-orange-100">
+                            <MapPin class="w-10 h-10 text-orange-600" />
+                        </div>
+
+                        <h2 class="text-2xl font-black text-gray-900 mb-3 tracking-tight">¿Quieres ver lo mejor de tu zona?</h2>
+                        <p class="text-sm text-gray-500 mb-8 leading-relaxed">
+                            Utilizamos tu ubicación para mostrarte los restaurantes más cercanos, calcular tiempos de entrega reales y mostrarte promociones exclusivas en tu ciudad.
+                        </p>
+
+                        <div class="space-y-3">
+                            <button 
+                                @click="acceptLocation"
+                                class="w-full bg-black text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl hover:bg-orange-600 transition-all hover:-translate-y-1 active:scale-95"
+                            >
+                                Permitir ubicación
+                            </button>
+                            <button 
+                                @click="declineLocation"
+                                class="w-full py-3 text-xs font-black text-gray-400 uppercase tracking-widest hover:text-gray-600 transition-colors"
+                            >
+                                Quizás más tarde
+                            </button>
+                        </div>
+
+                        <p class="mt-6 text-[10px] text-gray-400 leading-tight">
+                            Podrás cambiar esto en cualquier momento desde la configuración de tu navegador.
+                        </p>
                     </div>
                 </div>
             </div>

@@ -199,7 +199,7 @@ onUnmounted(() => {
                         <h1 class="text-lg font-bold text-gray-900 leading-tight">{{ company.name }}</h1>
                         <div class="flex items-center gap-2">
                             <p class="text-xs font-medium" :class="company.is_open ? 'text-green-600' : 'text-red-500'">
-                                {{ company.is_open ? 'Abierto ahora' : 'Cerrado ahora' }}
+                                {{ company.status_info?.message || (company.is_open ? 'Abierto ahora' : 'Cerrado ahora') }}
                             </p>
                             <span v-if="Number(company.average_rating) > 0" class="text-gray-300">|</span>
                             <div v-if="Number(company.average_rating) > 0" class="flex items-center gap-1">
@@ -245,6 +245,14 @@ onUnmounted(() => {
                         {{ cat.name }}
                     </a>
                 </div>
+            </div>
+
+            <!-- Closed Banner -->
+            <div v-if="!company.is_open" class="bg-red-50 border-t border-red-100 px-4 py-2 flex items-center justify-center gap-2">
+                <Clock class="w-4 h-4 text-red-500" />
+                <span class="text-xs font-bold text-red-600 uppercase tracking-wider">
+                    {{ company.status_info?.message || 'Cerrado por el momento' }}. No se aceptan pedidos.
+                </span>
             </div>
         </div>
 
@@ -343,6 +351,7 @@ onUnmounted(() => {
         <ProductModal 
             :is-open="isModalOpen"
             :product="selectedProduct"
+            :is-business-open="!!company.is_open"
             @close="isModalOpen = false"
             @add-to-cart="handleAddToCart"
         />
