@@ -183,6 +183,26 @@ const readyOrders = computed(() => {
         .filter(o => o.status === 'READY')
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
 })
+
+const showFullOrder = ref({}) // { orderId: boolean }
+
+const isItemNew = (item) => {
+    return parseInt(item.is_addition) === 1
+}
+
+const hasNewItems = (order) => {
+    return order.items && order.items.some(item => isItemNew(item))
+}
+
+const getDisplayedItems = (order) => {
+    if (showFullOrder.value[order.id]) return order.items
+    if (!hasNewItems(order)) return order.items
+    return order.items.filter(item => isItemNew(item))
+}
+
+const toggleFullOrder = (orderId) => {
+    showFullOrder.value[orderId] = !showFullOrder.value[orderId]
+}
 </script>
 
 <template>
@@ -265,13 +285,31 @@ const readyOrders = computed(() => {
                                         </span>
                                     </div>
                                 </div>
+                                <div v-if="hasNewItems(order)" class="mt-4">
+                                    <button @click="toggleFullOrder(order.id)" 
+                                            class="w-full p-2 bg-orange-500/20 border border-orange-500/50 rounded-xl hover:bg-orange-500/30 transition-colors">
+                                        <p class="text-[10px] font-black text-orange-400 uppercase tracking-widest text-center">
+                                            {{ showFullOrder[order.id] ? 'Ver solo nuevos' : '¡Productos Añadidos!' }}
+                                        </p>
+                                        <p v-if="!showFullOrder[order.id]" class="text-[8px] font-bold text-orange-400/70 uppercase text-center mt-0.5">Click para ver pedido completo</p>
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Sección Central: Productos (Lectura Rápida) -->
                             <div class="flex-1 p-6 bg-slate-900">
                                 <ul class="flex flex-col gap-3">
-                                    <li v-for="item in order.items" :key="item.id" class="flex items-start gap-4 p-4 bg-slate-950/50 rounded-2xl border border-slate-800/50 border-l-[4px] border-l-slate-700">
-                                        <div class="bg-orange-500 text-white min-w-[3.5rem] text-center px-3 py-1.5 rounded-xl font-black text-2xl shadow-lg border border-orange-400">
+                                    <li v-for="item in getDisplayedItems(order)" :key="item.id" 
+                                        :class="[
+                                            'flex items-start gap-4 p-4 bg-slate-950/50 rounded-2xl border border-slate-800/50 border-l-[4px] relative overflow-hidden',
+                                            isItemNew(item) ? 'border-l-orange-500 bg-orange-500/5 ring-1 ring-orange-500/20' : 'border-l-slate-700'
+                                        ]">
+                                        
+                                        <div v-if="isItemNew(item)" class="absolute top-0 right-0 bg-orange-500 text-white text-[8px] font-black px-2 py-1 rounded-bl-lg uppercase tracking-widest shadow-lg z-10">
+                                            NUEVO
+                                        </div>
+
+                                        <div :class="['min-w-[3.5rem] text-center px-3 py-1.5 rounded-xl font-black text-2xl shadow-lg border transition-colors', isItemNew(item) ? 'bg-orange-500 text-white border-orange-400' : 'bg-slate-800 text-slate-300 border-slate-700']">
                                             {{ item.quantity }}x
                                         </div>
                                         <div class="flex-1 pt-1">

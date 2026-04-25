@@ -519,6 +519,19 @@
             <label class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Nombre del Cliente</label>
             <input v-model="customerName" type="text" placeholder="Ej. Juan Pérez" class="w-full bg-white border border-slate-200 rounded-lg p-3 text-slate-700 font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none">
         </div>
+
+        <div v-if="isEditingOrder" class="mt-4 p-3 bg-orange-100 border border-orange-200 rounded-xl flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="text-lg">🔥</span>
+                <div class="leading-tight">
+                    <p class="text-[10px] font-black text-orange-600 uppercase tracking-widest">Añadiendo a</p>
+                    <p class="font-black text-slate-800">Orden #{{ editingOrderId }}</p>
+                </div>
+            </div>
+            <button @click="isEditingOrder = false; editingOrderId = null; selectedTableId = null" class="text-orange-600 hover:bg-orange-200 p-1.5 rounded-lg transition-colors">
+                <XCircle class="w-5 h-5" />
+            </button>
+        </div>
       </div>
 
       <!-- Ítems del Ticket -->
@@ -570,7 +583,7 @@
             :disabled="!canCheckout" 
             :class="['w-full font-black py-5 rounded-2xl shadow-xl transition-all flex flex-col items-center justify-center gap-1', canCheckout ? 'bg-orange-500 hover:bg-orange-600 text-white transform hover:-translate-y-1 active:scale-95' : 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50']"
         >
-            Realizar Pedido
+            {{ isEditingOrder ? 'Agregar al Pedido' : 'Realizar Pedido' }}
         </button>
       </div>
     </div>
@@ -592,7 +605,7 @@
             <div class="bg-white px-6 py-4 border-b border-slate-200 flex justify-between items-center relative z-10 shrink-0">
                 <div>
                     <h2 class="text-xl font-black text-slate-800">Mapa de Mesas</h2>
-                    <p class="text-sm text-slate-500 font-medium">Selecciona una mesa disponible (Verde)</p>
+                    <p class="text-sm text-slate-500 font-medium">Selecciona una mesa para crear o añadir al pedido</p>
                 </div>
                 <button @click="isTableModalOpen = false" class="p-2 hover:bg-slate-100 rounded-full transition-colors">
                     <XCircle class="w-6 h-6 text-slate-400" />
@@ -600,23 +613,26 @@
             </div>
             
             <div class="p-6 overflow-y-auto flex-1">
+                <div class="flex items-center gap-6 mb-5 text-xs font-bold text-slate-500">
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span> Disponible</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-orange-500 inline-block"></span> Con pedido abierto</span>
+                </div>
                 <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
                     <button 
                         v-for="table in tables" 
                         :key="table.id"
-                        :disabled="table.status !== 'AVAILABLE'"
                         @click="selectGridTable(table.id)"
                         :class="[
-                            'aspect-square p-2 rounded-2xl font-black text-lg border-2 transition-all flex flex-col items-center justify-center gap-1 shadow-sm relative overflow-hidden group',
-                            table.status !== 'AVAILABLE' 
-                                ? 'bg-red-50/50 border-red-200 text-red-500 cursor-not-allowed opacity-75' 
-                                : selectedTableId === table.id 
-                                    ? 'bg-green-500 border-green-600 text-white shadow-inner scale-95' 
+                            'aspect-square p-2 rounded-2xl font-black text-lg border-2 transition-all flex flex-col items-center justify-center gap-1 shadow-sm relative overflow-hidden cursor-pointer',
+                            selectedTableId === table.id 
+                                ? 'bg-green-500 border-green-600 text-white shadow-inner scale-95' 
+                                : table.status !== 'AVAILABLE'
+                                    ? 'bg-orange-50 border-orange-300 text-orange-600 hover:bg-orange-100 hover:border-orange-400 hover:scale-[1.02]'
                                     : 'bg-white border-green-200 text-green-700 hover:bg-green-50 hover:border-green-400 hover:scale-[1.02]'
                         ]"
                     >
-                        <div v-if="table.status !== 'AVAILABLE'" class="absolute inset-0 flex items-center justify-center bg-red-100/50 backdrop-blur-[1px]">
-                            <span class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black rotate-[-15deg]">Ocupada</span>
+                        <div v-if="table.status !== 'AVAILABLE'" class="absolute top-1 right-1">
+                            <span class="text-[8px] bg-orange-500 text-white px-1.5 py-0.5 rounded-full font-black uppercase tracking-wider shadow-sm">Abierta</span>
                         </div>
                         <Utensils class="w-6 h-6 mb-1 opacity-50" />
                         <div class="flex flex-col items-center">
@@ -866,6 +882,8 @@ const cart = ref([])
 const cartType = ref('TAKEAWAY')
 const selectedTableId = ref(null)
 const customerName = ref('')
+const isEditingOrder = ref(false)
+const editingOrderId = ref(null)
 
 // Mapa de Mesas Modal
 const isTableModalOpen = ref(false)
@@ -881,7 +899,34 @@ const openTableModal = async () => {
 }
 
 const selectGridTable = (id) => {
-    selectedTableId.value = id
+    const table = tables.value.find(t => t.id === id)
+    if (table && table.status === 'OCCUPIED') {
+        // Buscar cualquier orden activa (no finalizada) para esta mesa
+        const activeOrder = webOrders.value.find(o => 
+            o.table_id && parseInt(o.table_id) === parseInt(id) && 
+            !['COMPLETED', 'CANCELLED', 'REJECTED'].includes(o.status)
+        )
+        
+        if (activeOrder) {
+            isEditingOrder.value = true
+            editingOrderId.value = activeOrder.id
+            selectedTableId.value = id
+            cartType.value = 'DINE_IN'
+            toast.info(`Modo Edición: Agregando productos a la Orden #${activeOrder.id}`)
+        } else {
+            // Si la mesa está ocupada pero no encontramos la orden en el top 50, 
+            // permitimos seleccionarla pero como pedido nuevo (o podrías manejarlo de otra forma)
+            selectedTableId.value = id
+            cartType.value = 'DINE_IN'
+            isEditingOrder.value = false
+            editingOrderId.value = null
+        }
+    } else {
+        selectedTableId.value = id
+        cartType.value = 'DINE_IN'
+        isEditingOrder.value = false
+        editingOrderId.value = null
+    }
     isTableModalOpen.value = false
 }
 
@@ -1222,6 +1267,25 @@ const setExactPayment = () => {
 const placePOSOrder = async () => {
     if (!canCheckout.value) return
 
+    const itemsPayload = cart.value.map(i => ({
+        product_id: i.id,
+        quantity: i.quantity,
+        price: i.price,
+        modifiers: (i.modifiers || []).map(m => m.id),
+        special_instructions: i.special_instructions || ''
+    }))
+
+    if (isEditingOrder.value && editingOrderId.value) {
+        try {
+            await axios.post(`api.php/orders/${editingOrderId.value}/items`, { items: itemsPayload })
+            toast.success(`Productos agregados a la Orden #${editingOrderId.value} 🔥`)
+            resetPOSState()
+        } catch (err) {
+            toast.error("Error al actualizar pedido: " + (err.response?.data?.message || err.message))
+        }
+        return
+    }
+
     const orderPayload = {
         company_id: companyId,
         customer_name: cartType.value === 'DINE_IN' ? tables.value.find(t => t.id === selectedTableId.value)?.name : customerName.value,
@@ -1230,13 +1294,7 @@ const placePOSOrder = async () => {
         total_amount: cartTotal.value,
         status: 'ACCEPTED',
         payment_method: 'PENDING',
-        items: cart.value.map(i => ({
-            product_id: i.id,
-            quantity: i.quantity,
-            price: i.price,
-            modifiers: (i.modifiers || []).map(m => m.id),
-            special_instructions: i.special_instructions || ''
-        }))
+        items: itemsPayload
     }
 
     try {
@@ -1247,17 +1305,22 @@ const placePOSOrder = async () => {
         }
 
         toast.success(`Encargo enviado a cocina 🔥`)
-        
-        cart.value = []
-        customerName.value = ''
-        selectedTableId.value = null
-        loadInitialData()
-        refreshOrders()
-        activeView.value = 'ORDERS_LOCAL'
+        resetPOSState()
 
     } catch (err) {
         toast.error("Error al enviar pedido: " + (err.response?.data?.message || err.message))
     }
+}
+
+const resetPOSState = () => {
+    cart.value = []
+    customerName.value = ''
+    selectedTableId.value = null
+    isEditingOrder.value = false
+    editingOrderId.value = null
+    loadInitialData()
+    refreshOrders()
+    activeView.value = 'ORDERS_LOCAL'
 }
 
 // Abrir diálogo de cobro para una orden local activa

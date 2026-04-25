@@ -1,3 +1,28 @@
+## [2026-04-25] - Anexión de Productos a Pedidos Existentes en Mesa
+
+### 📝 Resumen de Cambios
+- Implementación de sistema para agregar productos a pedidos de mesa ya abiertos sin crear órdenes duplicadas.
+- Nueva columna `is_addition` para identificación confiable de productos añadidos en cocina.
+- Rediseño del mapa de mesas para permitir selección de mesas ocupadas.
+- Filtrado inteligente en Kitchen Dashboard que muestra solo los productos nuevos.
+
+### 💾 Scripts de Base de Datos (SQL)
+```sql
+-- Agregar columna para identificar productos añadidos después del pedido original
+ALTER TABLE order_items ADD COLUMN is_addition TINYINT(1) NOT NULL DEFAULT 0;
+```
+
+### 🚀 Detalle Técnico
+- **Backend (PHP)**:
+    - [x] `Order.php`: Nuevo método `appendItemsToOrder()` con transacción atómica, cálculo de totales y marcado de `is_addition`.
+    - [x] `OrderController.php`: Nuevo método `appendItems($id)` para endpoint de adición.
+    - [x] `api.php`: Nueva ruta `POST /api.php/orders/{id}/items`.
+- **Frontend (Vue 3)**:
+    - [x] `WebPOSView.vue`: Mapa de mesas rediseñado (mesas ocupadas clickeables con estilo naranja), modo edición con banner informativo, lógica bifurcada de envío (crear vs. actualizar), función `resetPOSState()`.
+    - [x] `KitchenDashboard.vue`: Filtrado por `is_addition` (solo muestra nuevos por defecto), etiquetas "NUEVO", toggle para ver pedido completo.
+
+---
+
 ## [2026-04-23] - Restricción por Horario y Flujo de Geolocalización
 
 ### 📝 Resumen de Cambios

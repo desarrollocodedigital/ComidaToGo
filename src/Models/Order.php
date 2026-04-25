@@ -243,4 +243,101 @@ class Order extends BaseModel {
             ];
         }
     }
+
+    public function appendItemsToOrder($orderId, $newItems) {
+        $this->db->beginTransaction();
+        try {
+            $orderStmt = $this->db->prepare("SELECT total_amount, status FROM {$this->table} WHERE id = :id FOR UPDATE");
+            $orderStmt->execute([':id' => $orderId]);
+            $order = $orderStmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$order) {
+                throw new Exception("Orden no encontrada");
+            }
+
+            if (in_array($order['status'], ['COMPLETED', 'CANCELLED', 'REJECTED'])) {
+                throw new Exception("No se pueden agregar productos a una orden finalizada (Estado: {$order['status']})");
+            }
+
+            $additionalTotal = 0;
+            $orderItemsData = [];
+
+            foreach ($newItems as $item) {
+                $stmt = $this->db->prepare("SELECT price, name FROM products WHERE id = :id");
+                $stmt->execute([':id' => $item['product_id']]);
+                $product = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$product) {
+                    throw new Exception("Producto ID {$item['product_id']} no encontrado");
+                }
+
+                $itemTotal = $product['price'];
+                $selectedModifiers = [];
+                if (isset($item['modifiers']) && is_array($item['modifiers'])) {
+                    foreach ($item['modifiers'] as $modId) {
+                        $stmtMod = $this->db->prepare("SELECT price_adjustment, name FROM modifier_options WHERE id = :id");
+                        $stmtMod->execute([':id' => $modId]);
+                        $mod = $stmtMod->fetch(PDO::FETCH_ASSOC);
+                        if ($mod) {
+                            $itemTotal += $mod['price_adjustment'];
+                            $selectedModifiers[] = $mod['name'];
+                        }
+                    }
+                }
+
+                $modifierData = [
+                    'options' => $selectedModifiers,
+                    'instructions' => $item['special_instructions'] ?? ''
+                ];
+
+                $lineTotal = $itemTotal * $item['quantity'];
+                $additionalTotal += $lineTotal;
+
+                $orderItemsData[] = [
+                    'product_id' => $item['product_id'],
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $itemTotal,
+                    'selected_modifiers' => json_encode($modifierData)
+                ];
+            }
+
+            // Actualizar total de la orden y resetear estado a ACCEPTED para que vuelva a cocina
+            $newTotal = $order['total_amount'] + $additionalTotal;
+            $updateStmt = $this->db->prepare("UPDATE {$this->table} SET total_amount = :total, status = 'ACCEPTED', accepted_at = NOW() WHERE id = :id");
+            $updateStmt->execute([':total' => $newTotal, ':id' => $orderId]);
+
+            // Resetear flag de adición anterior en items existentes
+            $resetStmt = $this->db->prepare("UPDATE order_items SET is_addition = 0 WHERE order_id = :oid");
+            $resetStmt->execute([':oid' => $orderId]);
+
+            // Insertar nuevos ítems con is_addition = 1
+            $sqlItem = "INSERT INTO order_items (order_id, product_id, quantity, unit_price, selected_modifiers, is_addition) 
+                        VALUES (:oid, :pid, :qty, :price, :mods, 1)";
+            $stmtItem = $this->db->prepare($sqlItem);
+
+            foreach ($orderItemsData as $itemData) {
+                $stmtItem->execute([
+                    ':oid' => $orderId,
+                    ':pid' => $itemData['product_id'],
+                    ':qty' => $itemData['quantity'],
+                    ':price' => $itemData['unit_price'],
+                    ':mods' => $itemData['selected_modifiers']
+                ]);
+            }
+
+            $this->db->commit();
+            
+            return [
+                "success" => true,
+                "additional_total" => $additionalTotal,
+                "new_total" => $newTotal
+            ];
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            return [
+                "success" => false,
+                "error" => $e->getMessage()
+            ];
+        }
+    }
 }
