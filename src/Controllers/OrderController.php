@@ -111,5 +111,29 @@ class OrderController {
             echo json_encode(["message" => "Error al crear pedido: " . $result['error']]);
         }
     }
+
+    public function appendItems($id) {
+        $rawInput = file_get_contents('php://input');
+        $input = json_decode($rawInput, true);
+
+        if (!isset($input['items']) || !is_array($input['items'])) {
+            http_response_code(400);
+            echo json_encode(["message" => "Debe proporcionar una lista de productos"]);
+            return;
+        }
+
+        $result = $this->model->appendItemsToOrder($id, $input['items']);
+
+        if ($result['success']) {
+            echo json_encode([
+                "message" => "Productos agregados con éxito",
+                "additional_total" => $result['additional_total'],
+                "new_total" => $result['new_total']
+            ]);
+        } else {
+            http_response_code(500);
+            echo json_encode(["message" => "Error al agregar productos: " . $result['error']]);
+        }
+    }
 }
 

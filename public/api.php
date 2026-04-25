@@ -71,7 +71,11 @@ if ($resource === 'auth') {
 } elseif ($resource === 'orders') {
     $controller = new OrderController();
     if ($method === 'POST') {
-        $controller->create();
+        if ($param && isset($uri[$key + 3]) && $uri[$key + 3] === 'items') {
+            $controller->appendItems($param);
+        } else {
+            $controller->create();
+        }
     } elseif ($method === 'GET') {
         if ($param === 'customer') {
             $controller->getByCustomer();
